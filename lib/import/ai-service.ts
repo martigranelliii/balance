@@ -8,6 +8,7 @@ import {
   sanitizeAiDescription,
   type AiCategories,
   type AiMovementInput,
+  type AiRuleContext,
   type AiSuggestion,
 } from "./ai";
 
@@ -39,6 +40,7 @@ export type AiGenerator = (request: AiGenerationRequest) => Promise<string>;
 export interface AiCategorizeOptions {
   movements: AiMovementInput[];
   categories: AiCategories;
+  rules?: AiRuleContext[];
   generate: AiGenerator;
 }
 
@@ -55,6 +57,7 @@ export interface AiCategorizeResult {
 export async function categorizeMovementsWithAi({
   movements,
   categories,
+  rules = [],
   generate,
 }: AiCategorizeOptions): Promise<AiCategorizeResult> {
   if (movements.length === 0 || movements.length > AI_MAX_MOVEMENTS) {
@@ -75,7 +78,7 @@ export async function categorizeMovementsWithAi({
     raw = await generate({
       model: AI_MODEL,
       systemInstruction: AI_SYSTEM_INSTRUCTION,
-      prompt: buildAiPrompt(categories, sanitized),
+      prompt: buildAiPrompt(categories, sanitized, rules),
       schema: buildAiResponseSchema(categories),
     });
   } catch (caught) {

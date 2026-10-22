@@ -1,17 +1,18 @@
-import { GoogleGenAI } from "@google/genai";
 import {
   AI_MAX_MOVEMENTS,
-  AI_TIMEOUT_MS,
   AiInputError,
   parseAiMovementsInput,
+  sanitizeAiDescription,
   type AiCategories,
   type AiMovementInput,
+  type AiRuleContext,
 } from "@/lib/import/ai";
 import {
   AiServiceError,
   categorizeMovementsWithAi,
 } from "@/lib/import/ai-service";
 import { consumeAiRateLimit } from "@/lib/import/ai-rate-limit";
+import { createGeminiGenerator } from "@/lib/import/gemini";
 import {
   categoriesForType,
   createCategoryCatalog,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/supabase/server";
 
 const MAX_BODY_BYTES = 32_000;
+const MAX_AI_RULES = 30;
 
 function json(body: unknown, status = 200, headers?: HeadersInit): Response {
   return Response.json(body, {
@@ -40,36 +42,10 @@ function errorResponse(
   return json({ error, code }, status, headers);
 }
 
-function isRateLimitError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const record = error as { status?: unknown; code?: unknown; message?: unknown };
-  if (record.status === 429 || record.code === 429) return true;
-  const message =
-    typeof record.message === "string" ? record.message.toLowerCase() : "";
-  return (
-    message.includes("429") ||
-    message.includes("resource_exhausted") ||
-    message.includes("rate limit")
-  );
-}
-
-function isTimeoutError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const record = error as { name?: unknown; message?: unknown };
-  const message =
-    typeof record.message === "string" ? record.message.toLowerCase() : "";
-  return (
-    record.name === "AbortError" ||
-    record.name === "TimeoutError" ||
-    message.includes("timeout") ||
-    message.includes("timed out")
-  );
-}
-
-async function loadAiCategories(
+async function loadAiContext(
   supabase: NonNullable<ReturnType<typeof createUserSupabaseClient>>,
   userId: string,
-): Promise<AiCategories> {
+): Promise<{ categories: AiCategories; rules: AiRuleContext[] }> {
   const { data, error } = await supabase
     .from("balance_data")
     .select("data")
@@ -84,7 +60,7 @@ async function loadAiCategories(
   const normalized = normalizeBalanceData(row?.data);
   const catalog = createCategoryCatalog(normalized.data);
 
-  return {
+  const categories: AiCategories = {
     income: categoriesForType("income", catalog).map((category) => ({
       id: category.id,
       label: category.label,
@@ -94,6 +70,31 @@ async function loadAiCategories(
       label: category.label,
     })),
   };
+
+  const allowed = new Set(
+    [...categories.income, ...categories.expense].map((item) => item.id),
+  );
+  const seen = new Set<string>();
+  const rules: AiRuleContext[] = [];
+
+  for (const rule of [...normalized.data.categoryRules].sort((a, b) =>
+    b.updatedAt.localeCompare(a.updatedAt),
+  )) {
+    if (!allowed.has(rule.category)) continue;
+    if (rule.kind !== "income" && rule.kind !== "expense") continue;
+
+    const pattern = sanitizeAiDescription(rule.pattern);
+    if (pattern.length < 2) continue;
+
+    const key = `${rule.kind}:${pattern}:${rule.category}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    rules.push({ pattern, categoryId: rule.category, kind: rule.kind });
+    if (rules.length >= MAX_AI_RULES) break;
+  }
+
+  return { categories, rules };
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -165,9 +166,9 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse(400, "Richiesta non valida.", "invalid_request");
   }
 
-  let categories: AiCategories;
+  let context: { categories: AiCategories; rules: AiRuleContext[] };
   try {
-    categories = await loadAiCategories(supabase, user.id);
+    context = await loadAiContext(supabase, user.id);
   } catch {
     return errorResponse(
       503,
@@ -178,7 +179,7 @@ export async function POST(request: Request): Promise<Response> {
 
   if (
     movements.some(
-      (movement) => categories[movement.direction].length === 0,
+      (movement) => context.categories[movement.direction].length === 0,
     )
   ) {
     return json({
@@ -198,64 +199,12 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-
   try {
     const result = await categorizeMovementsWithAi({
       movements,
-      categories,
-      generate: async ({ model, systemInstruction, prompt, schema }) => {
-        try {
-          const interaction = await ai.interactions.create(
-            {
-              model,
-              input: prompt,
-              system_instruction: systemInstruction,
-              response_format: {
-                type: "text",
-                mime_type: "application/json",
-                schema,
-              },
-              generation_config: {
-                temperature: 0.1,
-                max_output_tokens: 4096,
-                thinking_level: "low",
-              },
-              store: false,
-            },
-            {
-              timeout_ms: AI_TIMEOUT_MS,
-              retries: { strategy: "none" },
-            },
-          );
-
-          if (!interaction.output_text) {
-            throw new AiServiceError(
-              "invalid_response",
-              "La risposta AI non è valida.",
-            );
-          }
-          return interaction.output_text;
-        } catch (caught) {
-          if (caught instanceof AiServiceError) throw caught;
-          if (isRateLimitError(caught)) {
-            throw new AiServiceError(
-              "rate_limited",
-              "La quota AI è momentaneamente esaurita.",
-            );
-          }
-          if (isTimeoutError(caught)) {
-            throw new AiServiceError(
-              "timeout",
-              "La AI non ha risposto in tempo.",
-            );
-          }
-          throw new AiServiceError(
-            "generation_failed",
-            "Il servizio AI non è disponibile.",
-          );
-        }
-      },
+      categories: context.categories,
+      rules: context.rules,
+      generate: createGeminiGenerator(apiKey),
     });
 
     return json({

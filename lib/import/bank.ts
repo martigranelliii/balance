@@ -87,6 +87,12 @@ export interface BuildRowsInput {
   rules: CategoryRule[];
   /** Full catalog including hidden/archived; suggestions use only active ones. */
   categoryCatalog?: CategoryCatalog;
+  /**
+   * 1-based raw row numbers that the AI identified as headers, totals or
+   * notes. Only rows that fail deterministic validation are dropped; a valid
+   * movement is never discarded because of an AI hint.
+   */
+  skipRowNumbers?: number[];
 }
 
 export interface ReviewSummary {
@@ -714,12 +720,14 @@ export function buildBankRows(input: BuildRowsInput): BankImportRow[] {
     accounts,
     rules,
     categoryCatalog,
+    skipRowNumbers,
   } = input;
   const mapping = detection.mapping;
   if (!isMappingComplete(mapping)) {
     return [];
   }
 
+  const skip = new Set(skipRowNumbers ?? []);
   const rows: BankImportRow[] = [];
   const start = Math.max(0, detection.headerRowIndex + 1);
 
@@ -780,7 +788,7 @@ export function buildBankRows(input: BuildRowsInput): BankImportRow[] {
       isSafeCents(amountCents);
 
     const isTransfer = possibleTransfer(descriptionText, accounts);
-    let type: TransactionType = isTransfer
+    const type: TransactionType = isTransfer
       ? "transfer"
       : signedCents !== null && signedCents > 0
         ? "income"
@@ -796,7 +804,6 @@ export function buildBankRows(input: BuildRowsInput): BankImportRow[] {
             categoriesForType(type, categoryCatalog),
           );
 
-    const valid = baseValid;
     rows.push({
       id: `bank-row-${rowIndex + 1}`,
       rowNumber: rowIndex + 1,
@@ -821,8 +828,13 @@ export function buildBankRows(input: BuildRowsInput): BankImportRow[] {
     });
   }
 
+  const keptRows =
+    skip.size > 0
+      ? rows.filter((row) => !skip.has(row.rowNumber) || row.valid)
+      : rows;
+
   const occurrences = new Map<string, number>();
-  for (const row of rows) {
+  for (const row of keptRows) {
     if (!row.date || row.amountCents <= 0) continue;
     const signature = importSignature({
       date: row.date,
@@ -860,7 +872,7 @@ export function buildBankRows(input: BuildRowsInput): BankImportRow[] {
     }
   }
 
-  return rows;
+  return keptRows;
 }
 
 /**

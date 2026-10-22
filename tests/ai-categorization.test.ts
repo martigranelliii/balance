@@ -213,6 +213,41 @@ describe("AI request privacy and validation", () => {
 });
 
 describe("AI service fallbacks", () => {
+  it("sends applied personal rules only as context for the AI", async () => {
+    let captured = "";
+
+    await categorizeMovementsWithAi({
+      categories,
+      movements: [movement],
+      rules: [
+        {
+          pattern: "BERSHKA",
+          categoryId: "cibo",
+          kind: "expense",
+        },
+      ],
+      generate: async (request) => {
+        captured = request.prompt;
+        return JSON.stringify({
+          suggestions: [
+            {
+              ref: "bank-row-2",
+              merchant: "Esselunga",
+              categoryId: "cibo",
+              cleanDescription: "Esselunga",
+              possibleTransfer: false,
+              confidence: 91,
+            },
+          ],
+        });
+      },
+    });
+
+    expect(captured).toContain("REGOLE_PERSONALI");
+    expect(captured).toContain("BERSHKA");
+    expect(captured).not.toContain("amountCents");
+  });
+
   it("sanitizes descriptions before calling the generator", async () => {
     let captured = "";
     let systemInstruction = "";
@@ -290,6 +325,21 @@ describe("AI service fallbacks", () => {
         },
       }),
     ).rejects.toMatchObject({ code: "timeout" });
+    expect(calls).toBe(1);
+  });
+
+  it("preserves a rate-limit error and stops after one call", async () => {
+    let calls = 0;
+    await expect(
+      categorizeMovementsWithAi({
+        categories,
+        movements: [movement],
+        generate: async () => {
+          calls += 1;
+          throw new AiServiceError("rate_limited", "quota");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "rate_limited" });
     expect(calls).toBe(1);
   });
 });
@@ -512,10 +562,11 @@ describe("server-only AI configuration", () => {
       ),
       "utf8",
     );
-    const start = component.indexOf("async function runAiCategorization");
+    const start = component.indexOf("async function analyzeRowsWithAi");
     const end = component.indexOf("function changeType");
     const aiBlock = component.slice(start, end);
 
+    expect(start).toBeGreaterThan(-1);
     expect(aiBlock).not.toContain("importBankTransactions");
     expect(aiBlock).not.toContain("saveCloudBalance");
     expect(aiBlock).not.toContain(".upsert(");
@@ -529,13 +580,17 @@ describe("server-only AI configuration", () => {
       ),
       "utf8",
     );
+    const gemini = fs.readFileSync(
+      path.resolve(process.cwd(), "lib/import/gemini.ts"),
+      "utf8",
+    );
     const packageJson = JSON.parse(
       fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"),
     ) as { dependencies?: Record<string, string> };
 
-    expect(route).toContain("@google/genai");
+    expect(gemini).toContain("@google/genai");
+    expect(gemini).toContain("interactions.create");
     expect(route).toContain("GEMINI_API_KEY");
-    expect(route).toContain("interactions.create");
     expect(route).not.toContain("NEXT_PUBLIC_GEMINI");
     expect(packageJson.dependencies?.["@google/genai"]).toBeTruthy();
   });

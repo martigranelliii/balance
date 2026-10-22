@@ -21,8 +21,23 @@ import {
   type ColumnMapping,
   type SheetMatrix,
 } from "@/lib/import/bank";
-import { AI_MAX_MOVEMENTS } from "@/lib/import/ai";
-import { requestAiSuggestions } from "@/lib/import/ai-client";
+import {
+  AI_MAX_AUTO_BATCHES,
+  AI_MAX_MOVEMENTS,
+  type AiSuggestion,
+} from "@/lib/import/ai";
+import {
+  requestAiInterpretation,
+  requestAiSuggestions,
+} from "@/lib/import/ai-client";
+import {
+  AUTO_MAPPING_GOOD_RATIO,
+  buildAiSample,
+  chooseMapping,
+  planAiBatches,
+  validRowRatio,
+  type MappingChoice,
+} from "@/lib/import/auto";
 import {
   parseStatementFile,
   type BankFileType,
@@ -39,7 +54,7 @@ import { importBankTransactions } from "@/lib/store";
 import { Sheet } from "../ui/Sheet";
 import { Icon } from "../ui/Icon";
 
-type Stage = "upload" | "reading" | "mapping" | "review";
+type Stage = "upload" | "reading" | "organizing" | "mapping" | "review";
 
 interface ImportStatementSheetProps {
   data: BalanceData;
@@ -66,6 +81,11 @@ const TYPE_OPTIONS = [
   { value: "transfer", label: "Trasferimento" },
 ] as const;
 
+function joinNotes(...notes: Array<string | null | undefined>): string | null {
+  const text = notes.filter((note): note is string => Boolean(note)).join(" ");
+  return text || null;
+}
+
 export function ImportStatementSheet({
   data,
   onClose,
@@ -84,10 +104,8 @@ export function ImportStatementSheet({
   const [visibleCount, setVisibleCount] = useState(50);
   const [rememberRules, setRememberRules] = useState(true);
   const [importing, setImporting] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiNotice, setAiNotice] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState<string | null>(null);
+  const [analysisNote, setAnalysisNote] = useState<string | null>(null);
+  const analysisRunRef = useRef(0);
 
   const categoryCatalog = useMemo(
     () => createCategoryCatalog(data),
@@ -95,25 +113,6 @@ export function ImportStatementSheet({
   );
   const summary = useMemo(() => summarizeReview(rows), [rows]);
   const readyRows = useMemo(() => rows.filter(isImportRowReady), [rows]);
-  const aiCandidates = useMemo(
-    () => rows.filter((row) => isAiCandidate(row, categoryCatalog)),
-    [rows, categoryCatalog],
-  );
-  const aiAppliedCount = useMemo(
-    () => rows.filter((row) => row.aiSuggestion).length,
-    [rows],
-  );
-  const deterministicCount = useMemo(
-    () =>
-      rows.filter(
-        (row) =>
-          row.duplicate ||
-          row.type === "transfer" ||
-          row.suggestionSource === "learned" ||
-          row.suggestionSource === "pattern",
-      ).length,
-    [rows],
-  );
   const visibleRows = rows.slice(0, visibleCount);
 
   useEffect(() => {
@@ -121,6 +120,7 @@ export function ImportStatementSheet({
   }, [stage]);
 
   function resetToUpload() {
+    analysisRunRef.current += 1;
     setStage("upload");
     setError(null);
     setMatrix(null);
@@ -128,29 +128,39 @@ export function ImportStatementSheet({
     setRows([]);
     setFileInfo(null);
     setVisibleCount(50);
-    setAiLoading(false);
-    setAiError(null);
-    setAiNotice(null);
-    setAiModel(null);
+    setAnalysisNote(null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  function beginReview(
+  function buildRowsFor(
     nextMatrix: SheetMatrix,
-    nextDetection: ColumnDetection,
+    headerRowIndex: number,
     mapping: ColumnMapping,
-  ) {
-    const nextRows = buildBankRows({
+    skipRowNumbers: number[] = [],
+  ): BankImportRow[] {
+    return buildBankRows({
       matrix: nextMatrix,
-      detection: {
-        headerRowIndex: nextDetection.headerRowIndex,
-        mapping,
-      },
+      detection: { headerRowIndex, mapping },
       existingTransactions: data.transactions,
       accounts: data.accounts,
       rules: data.categoryRules,
       categoryCatalog,
+      skipRowNumbers,
     });
+  }
+
+  function beginReview(
+    nextMatrix: SheetMatrix,
+    choice: MappingChoice,
+    initialNote: string | null,
+    run: number,
+  ) {
+    const nextRows = buildRowsFor(
+      nextMatrix,
+      choice.headerRowIndex,
+      choice.mapping,
+      choice.skipRowNumbers,
+    );
 
     if (nextRows.length === 0) {
       setError("Il file non contiene movimenti importabili.");
@@ -160,33 +170,140 @@ export function ImportStatementSheet({
 
     setRows(nextRows);
     setVisibleCount(50);
-    setStage("review");
+    setStage("organizing");
     setError(null);
-    setAiLoading(false);
-    setAiError(null);
-    setAiNotice(null);
-    setAiModel(null);
+    setAnalysisNote(initialNote);
+    void finishReview(nextRows, initialNote, run);
+  }
+
+  async function finishReview(
+    baseRows: BankImportRow[],
+    initialNote: string | null,
+    run: number,
+  ) {
+    let result: { rows: BankImportRow[]; note: string | null };
+    try {
+      result = await analyzeRowsWithAi(baseRows);
+    } catch {
+      result = {
+        rows: baseRows,
+        note:
+          "AI non disponibile in questo momento: ho usato le regole e le categorie di Balance.",
+      };
+    }
+    if (analysisRunRef.current !== run) return;
+    setRows(result.rows);
+    setAnalysisNote(joinNotes(initialNote, result.note));
+    setStage("review");
   }
 
   async function handleFile(file: File) {
+    const run = analysisRunRef.current + 1;
+    analysisRunRef.current = run;
     setError(null);
     setStage("reading");
+    setAnalysisNote(null);
+    setRows([]);
+    setMatrix(null);
+    setDetection(null);
+
     try {
       const parsed = await parseStatementFile(file);
+      if (analysisRunRef.current !== run) return;
+
       const nextDetection = detectColumns(parsed.matrix);
       setMatrix(parsed.matrix);
       setDetection(nextDetection);
       setFileInfo({ name: file.name, type: parsed.fileType });
 
-      if (nextDetection.confidence === "high" && isMappingComplete(nextDetection.mapping)) {
-        beginReview(parsed.matrix, nextDetection, nextDetection.mapping);
+      const localMappingComplete = isMappingComplete(nextDetection.mapping);
+      const localRows = localMappingComplete
+        ? buildRowsFor(
+            parsed.matrix,
+            nextDetection.headerRowIndex,
+            nextDetection.mapping,
+          )
+        : [];
+      const localRatio = validRowRatio(localRows);
+
+      let aiNote: string | null = null;
+      let aiMapping: ColumnMapping | null = null;
+      let aiHeaderRowIndex = -1;
+      let aiSkipRowNumbers: number[] = [];
+      let aiRatio = 0;
+
+      if (
+        !localMappingComplete ||
+        localRatio < AUTO_MAPPING_GOOD_RATIO
+      ) {
+        setStage("organizing");
+        try {
+          const sample = buildAiSample(parsed.matrix);
+          const interpretation = await requestAiInterpretation({
+            fileType: parsed.fileType,
+            rowCount: sample.rowCount,
+            columnCount: sample.columnCount,
+            rows: sample.rows,
+            detection: {
+              headerRowNumber:
+                nextDetection.headerRowIndex >= 0
+                  ? nextDetection.headerRowIndex + 1
+                  : 0,
+              mapping: nextDetection.mapping,
+            },
+          });
+          if (analysisRunRef.current !== run) return;
+
+          if (interpretation.mapping) {
+            aiMapping = interpretation.mapping;
+            aiHeaderRowIndex =
+              interpretation.headerRowNumber > 0
+                ? interpretation.headerRowNumber - 1
+                : -1;
+            aiSkipRowNumbers = interpretation.nonMovementRows;
+            const aiRows = buildRowsFor(
+              parsed.matrix,
+              aiHeaderRowIndex,
+              aiMapping,
+              aiSkipRowNumbers,
+            );
+            aiRatio = validRowRatio(aiRows);
+          }
+        } catch {
+          if (analysisRunRef.current !== run) return;
+          aiNote =
+            "Lettura automatica della struttura non disponibile: uso il riconoscimento di Balance.";
+        }
+      }
+
+      const choice = chooseMapping({
+        localMappingComplete,
+        localMapping: nextDetection.mapping,
+        localRatio,
+        localHeaderRowIndex: nextDetection.headerRowIndex,
+        aiMappingComplete: aiMapping !== null,
+        aiMapping,
+        aiRatio,
+        aiHeaderRowIndex,
+        aiSkipRowNumbers,
+      });
+
+      if (!choice) {
+        setDraftMapping(nextDetection.mapping);
+        setDraftMode(getMappingMode(nextDetection.mapping));
+        setStage("mapping");
+        setAnalysisNote(
+          joinNotes(
+            aiNote,
+            "Non riesco a riconoscere le colonne in automatico. Sceglile tu: è l'unico passaggio manuale.",
+          ),
+        );
         return;
       }
 
-      setDraftMapping(nextDetection.mapping);
-      setDraftMode(getMappingMode(nextDetection.mapping));
-      setStage("mapping");
+      beginReview(parsed.matrix, choice, aiNote, run);
     } catch (caught) {
+      if (analysisRunRef.current !== run) return;
       setError(
         caught instanceof Error
           ? caught.message
@@ -198,7 +315,19 @@ export function ImportStatementSheet({
 
   function useMapping() {
     if (!matrix || !detection || !isMappingComplete(draftMapping)) return;
-    beginReview(matrix, detection, draftMapping);
+    const run = analysisRunRef.current + 1;
+    analysisRunRef.current = run;
+    beginReview(
+      matrix,
+      {
+        headerRowIndex: detection.headerRowIndex,
+        mapping: draftMapping,
+        skipRowNumbers: [],
+        source: "local",
+      },
+      null,
+      run,
+    );
   }
 
   function updateRow(id: string, patch: Partial<BankImportRow>) {
@@ -207,57 +336,75 @@ export function ImportStatementSheet({
     );
   }
 
-  async function runAiCategorization() {
-    if (aiLoading) return;
-    const batch = aiCandidates.slice(0, AI_MAX_MOVEMENTS);
-    if (batch.length === 0) return;
+  /**
+   * Runs automatically after parsing. Only uncertain rows are sent, in small
+   * sequential batches; any failure stops the AI pass and keeps the
+   * deterministic suggestions, so the import is never blocked.
+   */
+  async function analyzeRowsWithAi(baseRows: BankImportRow[]): Promise<{
+    rows: BankImportRow[];
+    note: string | null;
+  }> {
+    const candidates = baseRows.filter((row) =>
+      isAiCandidate(row, categoryCatalog),
+    );
+    if (candidates.length === 0) return { rows: baseRows, note: null };
 
-    setAiLoading(true);
-    setAiError(null);
-    setAiNotice(null);
-    try {
-      const result = await requestAiSuggestions(
-        batch.map((row) => ({
-          ref: row.id,
-          description: row.description,
-          direction: row.type === "income" ? "income" : "expense",
-        })),
-      );
-      if (result.model) setAiModel(result.model);
+    const batches = planAiBatches(
+      candidates,
+      AI_MAX_MOVEMENTS,
+      AI_MAX_AUTO_BATCHES,
+    );
+    const plannedCount = batches.reduce(
+      (count, batch) => count + batch.length,
+      0,
+    );
+    const suggestions: AiSuggestion[] = [];
+    let failed = false;
 
-      if (result.suggestions.length > 0) {
-        setRows((current) =>
-          applyAiSuggestions(
-            current,
-            result.suggestions,
-            categoryCatalog,
-          ),
+    for (const batch of batches) {
+      try {
+        const result = await requestAiSuggestions(
+          batch.map((row) => ({
+            ref: row.id,
+            description: row.description,
+            direction: row.type === "income" ? "income" : "expense",
+          })),
         );
-        const remaining = Math.max(
-          0,
-          aiCandidates.length - result.suggestions.length,
-        );
-        setAiNotice(
-          `${result.suggestions.length} suggerimenti AI ricevuti. Controlla le categorie prima di importare.${
-            remaining > 0
-              ? ` Restano ${remaining} movimenti da analizzare.`
-              : ""
-          }`,
-        );
-      } else {
-        setAiError(
-          "La AI non ha prodotto suggerimenti utilizzabili. Puoi scegliere le categorie a mano.",
-        );
+        suggestions.push(...result.suggestions);
+      } catch {
+        failed = true;
+        break;
       }
-    } catch (caught) {
-      setAiError(
-        caught instanceof Error
-          ? caught.message
-          : "La categorizzazione AI non è riuscita. Puoi importare normalmente.",
-      );
-    } finally {
-      setAiLoading(false);
     }
+
+    const nextRows =
+      suggestions.length > 0
+        ? applyAiSuggestions(baseRows, suggestions, categoryCatalog)
+        : baseRows;
+    const applied = nextRows.filter((row) => row.aiSuggestion).length;
+
+    let note: string | null = null;
+    if (failed) {
+      note =
+        applied > 0
+          ? `AI applicata a ${applied} movimenti. Per gli altri ho usato le regole e le categorie di Balance.`
+          : "AI non disponibile in questo momento: ho usato le regole e le categorie di Balance.";
+    } else if (applied > 0) {
+      note = `AI ha proposto ${applied} categorie. Puoi modificarle prima di importare.`;
+    } else {
+      note =
+        "L'AI non ha proposto categorie utilizzabili: ho mantenuto le categorie di Balance.";
+    }
+
+    if (plannedCount < candidates.length) {
+      note = joinNotes(
+        note,
+        `Analisi AI limitata ai primi ${plannedCount} movimenti incerti; gli altri mantengono la categoria suggerita.`,
+      );
+    }
+
+    return { rows: nextRows, note };
   }
 
   function changeType(row: BankImportRow, type: BankImportRow["type"]) {
@@ -362,7 +509,7 @@ export function ImportStatementSheet({
       subtitle={
         fileInfo
           ? `${fileInfo.name} · ${fileInfo.type.toUpperCase()}`
-          : "CSV o Excel. Rivedi i movimenti prima di salvarli."
+          : "CSV o Excel. Analisi automatica, conferma prima di salvare."
       }
       onClose={onClose}
       size="wide"
@@ -378,10 +525,10 @@ export function ImportStatementSheet({
       {stage === "upload" ? (
         <div className="import-upload">
           <div className="import-upload-copy">
-            <h3>File dell'estratto conto</h3>
+            <h3>File dell’estratto conto</h3>
             <p>
               Esporta il file dalla tua banca. Balance legge il contenuto su
-              questo dispositivo e non lo invia online.
+              questo dispositivo e riconosce i movimenti in automatico.
             </p>
           </div>
 
@@ -405,9 +552,12 @@ export function ImportStatementSheet({
           </label>
 
           <div className="import-upload-notes">
-            <p>Il file non viene caricato su un server.</p>
-            <p>Le categorie sono suggerimenti. Puoi cambiarle prima di importare.</p>
-            <p>I movimenti già presenti vengono segnalati e esclusi.</p>
+            <p>
+              Per interpretare il file invio al server solo un campione di righe
+              ripulite: niente IBAN, carte, email o saldi.
+            </p>
+            <p>Le categorie sono proposte automaticamente e restano modificabili.</p>
+            <p>Nessun movimento viene salvato prima della tua conferma.</p>
           </div>
         </div>
       ) : null}
@@ -415,8 +565,19 @@ export function ImportStatementSheet({
       {stage === "reading" ? (
         <div className="import-reading" role="status" aria-live="polite">
           <span className="import-spinner" aria-hidden="true" />
-          <h3>Sto leggendo il file.</h3>
-          <p>Riconosco colonne, date e importi.</p>
+          <h3>Sto leggendo l’estratto conto…</h3>
+          <p>Riconosco righe, date e importi sul dispositivo.</p>
+        </div>
+      ) : null}
+
+      {stage === "organizing" ? (
+        <div className="import-reading" role="status" aria-live="polite">
+          <span className="import-spinner" aria-hidden="true" />
+          <h3>Sto organizzando i movimenti…</h3>
+          <p>
+            Applico le tue regole e, solo se serve, chiedo aiuto alla AI. Puoi
+            importare anche se la AI non è disponibile.
+          </p>
         </div>
       ) : null}
 
@@ -424,8 +585,11 @@ export function ImportStatementSheet({
         <div className="import-mapping">
           <div className="import-section-heading">
             <div>
-              <h3>Non riesco a riconoscere tutte le colonne.</h3>
-              <p>Scegli quali colonne contengono data, descrizione e importo.</p>
+              <h3>Scegli le colonne</h3>
+              <p>
+                Il file non è interpretabile in automatico. Indica dove si
+                trovano data, descrizione e importo.
+              </p>
             </div>
           </div>
 
@@ -576,82 +740,15 @@ export function ImportStatementSheet({
             </div>
           </div>
 
-          {aiCandidates.length > 0 || aiAppliedCount > 0 ? (
-            <div className="import-ai-panel">
-              <div className="import-ai-head">
-                <div>
-                  <h3>✨ Categorizza con AI</h3>
-                  <p className="import-ai-counts">
-                    <span>
-                      <strong>{summary.detected}</strong> movimenti trovati
-                    </span>
-                    <span>
-                      <strong>{deterministicCount}</strong> già gestiti senza AI
-                    </span>
-                    <span>
-                      <strong>{aiCandidates.length}</strong> da analizzare con AI
-                    </span>
-                  </p>
-                  <p className="import-ai-privacy">
-                    Invio solo descrizioni ripulite e direzione del movimento.
-                    Non invio importi, date, conti, IBAN, saldi o storico. La AI
-                    non modifica nulla: i suggerimenti sono sempre correggibili
-                    e nessun movimento viene salvato finché non premi Importa.
-                  </p>
-                </div>
-                <div className="import-ai-actions">
-                  <button
-                    type="button"
-                    className="button button--soft"
-                    onClick={() => void runAiCategorization()}
-                    disabled={aiLoading || aiCandidates.length === 0}
-                  >
-                    {aiLoading
-                      ? "Analisi in corso…"
-                      : aiAppliedCount > 0
-                        ? "✨ Analizza altri"
-                        : "✨ Categorizza con AI"}
-                  </button>
-                  {aiCandidates.length > AI_MAX_MOVEMENTS ? (
-                    <small>
-                      Analizzo {AI_MAX_MOVEMENTS} movimenti per volta.
-                    </small>
-                  ) : null}
-                  {aiModel ? <small>Modello: {aiModel}</small> : null}
-                </div>
-              </div>
-
-              {aiAppliedCount > 0 ? (
-                <p className="import-ai-result">
-                  <strong>{aiAppliedCount}</strong>{" "}
-                  {aiAppliedCount === 1
-                    ? "suggerimento AI applicato"
-                    : "suggerimenti AI applicati"}
-                  {" · "}
-                  {aiCandidates.length}{" "}
-                  {aiCandidates.length === 1
-                    ? "movimento ancora da analizzare"
-                    : "movimenti ancora da analizzare"}
-                </p>
-              ) : null}
-
-              {aiNotice ? (
-                <p className="import-ai-notice" role="status">
-                  {aiNotice}
-                </p>
-              ) : null}
-
-              {aiError ? (
-                <p className="import-ai-error" role="alert">
-                  {aiError}
-                </p>
-              ) : null}
-            </div>
+          {analysisNote ? (
+            <p className="import-ai-notice" role="status">
+              {analysisNote}
+            </p>
           ) : null}
 
           <div className="import-review-head">
             <div>
-              <h3>Controlla i movimenti</h3>
+              <h3>Pronto da importare</h3>
               <p>
                 Togli la spunta a ciò che non vuoi importare. Le categorie sono
                 modificabili.
@@ -720,11 +817,7 @@ export function ImportStatementSheet({
               disabled={readyRows.length === 0 || importing}
             >
               <Icon name="upload" size={17} />
-              {importing
-                ? "Importazione in corso…"
-                : `Importa ${readyRows.length} ${
-                    readyRows.length === 1 ? "movimento" : "movimenti"
-                  }`}
+              {importing ? "Importazione in corso…" : "Importa movimenti"}
             </button>
             <button
               type="button"
@@ -929,7 +1022,11 @@ function ImportReviewRow({
             {row.date ? formatShortDate(row.date, true) : row.rawDate || "Data non riconosciuta"}
             <span>Riga {row.rowNumber}</span>
           </div>
-          <h4>{row.description || "Descrizione mancante"}</h4>
+          <h4>
+            {row.aiSuggestion?.cleanDescription ||
+              row.description ||
+              "Descrizione mancante"}
+          </h4>
           <div className="import-row-amount">{amount}</div>
         </div>
       </div>
@@ -946,7 +1043,10 @@ function ImportReviewRow({
         ) : null}
         {row.aiSuggestion ? (
           <span className="badge badge--ai">
-            ✨ AI {row.aiSuggestion.confidence}%
+            ✨ AI
+            {row.aiSuggestion.confidence < 85
+              ? ` ${row.aiSuggestion.confidence}%`
+              : ""}
           </span>
         ) : null}
         {row.aiSuggestion?.possibleTransfer ? (
@@ -1045,8 +1145,9 @@ function ImportReviewRow({
             {row.aiSuggestion.merchant
               ? ` · ${row.aiSuggestion.merchant}`
               : ""}
-            {" · "}
-            confidenza {row.aiSuggestion.confidence}%
+            {row.aiSuggestion.confidence < 85
+              ? ` · confidenza ${row.aiSuggestion.confidence}%`
+              : ""}
           </p>
           {row.aiSuggestion.cleanDescription &&
           row.aiSuggestion.cleanDescription !== row.description ? (
