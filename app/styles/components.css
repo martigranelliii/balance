@@ -1298,6 +1298,127 @@
   color: var(--sand);
 }
 
+.import-ai-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(219, 232, 241, 0.5),
+      rgba(253, 251, 245, 0.84)
+    );
+}
+
+.import-ai-head {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.import-ai-head h3 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.import-ai-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 5px;
+  color: var(--slate);
+  font-size: 9.5px;
+  line-height: 1.35;
+}
+
+.import-ai-counts strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.import-ai-privacy {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.import-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.import-ai-actions .button {
+  min-height: 38px;
+}
+
+.import-ai-actions small {
+  color: var(--muted);
+  font-size: 8.5px;
+  line-height: 1.3;
+}
+
+.import-ai-result,
+.import-ai-notice,
+.import-ai-error {
+  padding: 8px 10px;
+  border-radius: 11px;
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.import-ai-result {
+  background: rgba(219, 232, 241, 0.52);
+  color: var(--deep);
+}
+
+.import-ai-result strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.import-ai-notice {
+  background: rgba(129, 148, 112, 0.14);
+  color: var(--ink);
+}
+
+.import-ai-error {
+  background: var(--peach-soft);
+  color: var(--sand);
+}
+
+.import-ai-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px dashed rgba(77, 94, 110, 0.26);
+  border-radius: 11px;
+  background: rgba(219, 232, 241, 0.28);
+  color: var(--slate);
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+
+.import-ai-suggestion strong {
+  color: var(--deep);
+}
+
+.import-ai-suggestion p:last-child {
+  color: var(--sand);
+}
+
+.badge--ai {
+  background: var(--powder);
+  color: var(--deep);
+}
+
 .import-review-head {
   display: flex;
   align-items: flex-start;
@@ -1526,5 +1647,18 @@
 @media (min-width: 720px) {
   .import-review-summary {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .import-ai-head {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .import-ai-actions {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
   }
 }

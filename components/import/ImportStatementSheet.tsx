@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Account, BalanceData } from "@/lib/types";
 import {
+  applyAiSuggestions,
   buildBankRows,
   columnLabel,
   detectColumns,
   DUPLICATE_ISSUE,
+  isAiCandidate,
   isImportRowReady,
   isMappingComplete,
   mappingMode as getMappingMode,
@@ -19,6 +21,8 @@ import {
   type ColumnMapping,
   type SheetMatrix,
 } from "@/lib/import/bank";
+import { AI_MAX_MOVEMENTS } from "@/lib/import/ai";
+import { requestAiSuggestions } from "@/lib/import/ai-client";
 import {
   parseStatementFile,
   type BankFileType,
@@ -26,6 +30,7 @@ import {
 import {
   categoriesForType,
   createCategoryCatalog,
+  getCategoryLabel,
   type CategoryCatalog,
 } from "@/lib/categories";
 import { formatLongDate, formatShortDate } from "@/lib/dates";
@@ -79,10 +84,36 @@ export function ImportStatementSheet({
   const [visibleCount, setVisibleCount] = useState(50);
   const [rememberRules, setRememberRules] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+  const [aiModel, setAiModel] = useState<string | null>(null);
 
-  const categoryCatalog = createCategoryCatalog(data);
+  const categoryCatalog = useMemo(
+    () => createCategoryCatalog(data),
+    [data],
+  );
   const summary = useMemo(() => summarizeReview(rows), [rows]);
   const readyRows = useMemo(() => rows.filter(isImportRowReady), [rows]);
+  const aiCandidates = useMemo(
+    () => rows.filter((row) => isAiCandidate(row, categoryCatalog)),
+    [rows, categoryCatalog],
+  );
+  const aiAppliedCount = useMemo(
+    () => rows.filter((row) => row.aiSuggestion).length,
+    [rows],
+  );
+  const deterministicCount = useMemo(
+    () =>
+      rows.filter(
+        (row) =>
+          row.duplicate ||
+          row.type === "transfer" ||
+          row.suggestionSource === "learned" ||
+          row.suggestionSource === "pattern",
+      ).length,
+    [rows],
+  );
   const visibleRows = rows.slice(0, visibleCount);
 
   useEffect(() => {
@@ -97,6 +128,10 @@ export function ImportStatementSheet({
     setRows([]);
     setFileInfo(null);
     setVisibleCount(50);
+    setAiLoading(false);
+    setAiError(null);
+    setAiNotice(null);
+    setAiModel(null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -127,6 +162,10 @@ export function ImportStatementSheet({
     setVisibleCount(50);
     setStage("review");
     setError(null);
+    setAiLoading(false);
+    setAiError(null);
+    setAiNotice(null);
+    setAiModel(null);
   }
 
   async function handleFile(file: File) {
@@ -168,6 +207,59 @@ export function ImportStatementSheet({
     );
   }
 
+  async function runAiCategorization() {
+    if (aiLoading) return;
+    const batch = aiCandidates.slice(0, AI_MAX_MOVEMENTS);
+    if (batch.length === 0) return;
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiNotice(null);
+    try {
+      const result = await requestAiSuggestions(
+        batch.map((row) => ({
+          ref: row.id,
+          description: row.description,
+          direction: row.type === "income" ? "income" : "expense",
+        })),
+      );
+      if (result.model) setAiModel(result.model);
+
+      if (result.suggestions.length > 0) {
+        setRows((current) =>
+          applyAiSuggestions(
+            current,
+            result.suggestions,
+            categoryCatalog,
+          ),
+        );
+        const remaining = Math.max(
+          0,
+          aiCandidates.length - result.suggestions.length,
+        );
+        setAiNotice(
+          `${result.suggestions.length} suggerimenti AI ricevuti. Controlla le categorie prima di importare.${
+            remaining > 0
+              ? ` Restano ${remaining} movimenti da analizzare.`
+              : ""
+          }`,
+        );
+      } else {
+        setAiError(
+          "La AI non ha prodotto suggerimenti utilizzabili. Puoi scegliere le categorie a mano.",
+        );
+      }
+    } catch (caught) {
+      setAiError(
+        caught instanceof Error
+          ? caught.message
+          : "La categorizzazione AI non è riuscita. Puoi importare normalmente.",
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   function changeType(row: BankImportRow, type: BankImportRow["type"]) {
     if (type === row.type) return;
     if (type === "transfer") {
@@ -176,6 +268,8 @@ export function ImportStatementSheet({
         category: null,
         include: row.valid,
         toAccountId: row.toAccountId,
+        aiSuggestion: undefined,
+        categoryEdited: true,
       });
       return;
     }
@@ -199,6 +293,8 @@ export function ImportStatementSheet({
       accountId: row.accountId,
       toAccountId: undefined,
       include: row.include || row.possibleTransfer,
+      aiSuggestion: undefined,
+      categoryEdited: true,
     });
   }
 
@@ -480,6 +576,79 @@ export function ImportStatementSheet({
             </div>
           </div>
 
+          {aiCandidates.length > 0 || aiAppliedCount > 0 ? (
+            <div className="import-ai-panel">
+              <div className="import-ai-head">
+                <div>
+                  <h3>✨ Categorizza con AI</h3>
+                  <p className="import-ai-counts">
+                    <span>
+                      <strong>{summary.detected}</strong> movimenti trovati
+                    </span>
+                    <span>
+                      <strong>{deterministicCount}</strong> già gestiti senza AI
+                    </span>
+                    <span>
+                      <strong>{aiCandidates.length}</strong> da analizzare con AI
+                    </span>
+                  </p>
+                  <p className="import-ai-privacy">
+                    Invio solo descrizioni ripulite e direzione del movimento.
+                    Non invio importi, date, conti, IBAN, saldi o storico. La AI
+                    non modifica nulla: i suggerimenti sono sempre correggibili
+                    e nessun movimento viene salvato finché non premi Importa.
+                  </p>
+                </div>
+                <div className="import-ai-actions">
+                  <button
+                    type="button"
+                    className="button button--soft"
+                    onClick={() => void runAiCategorization()}
+                    disabled={aiLoading || aiCandidates.length === 0}
+                  >
+                    {aiLoading
+                      ? "Analisi in corso…"
+                      : aiAppliedCount > 0
+                        ? "✨ Analizza altri"
+                        : "✨ Categorizza con AI"}
+                  </button>
+                  {aiCandidates.length > AI_MAX_MOVEMENTS ? (
+                    <small>
+                      Analizzo {AI_MAX_MOVEMENTS} movimenti per volta.
+                    </small>
+                  ) : null}
+                  {aiModel ? <small>Modello: {aiModel}</small> : null}
+                </div>
+              </div>
+
+              {aiAppliedCount > 0 ? (
+                <p className="import-ai-result">
+                  <strong>{aiAppliedCount}</strong>{" "}
+                  {aiAppliedCount === 1
+                    ? "suggerimento AI applicato"
+                    : "suggerimenti AI applicati"}
+                  {" · "}
+                  {aiCandidates.length}{" "}
+                  {aiCandidates.length === 1
+                    ? "movimento ancora da analizzare"
+                    : "movimenti ancora da analizzare"}
+                </p>
+              ) : null}
+
+              {aiNotice ? (
+                <p className="import-ai-notice" role="status">
+                  {aiNotice}
+                </p>
+              ) : null}
+
+              {aiError ? (
+                <p className="import-ai-error" role="alert">
+                  {aiError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="import-review-head">
             <div>
               <h3>Controlla i movimenti</h3>
@@ -724,6 +893,14 @@ function ImportReviewRow({
       : row.type === "expense"
         ? formatSignedMoney(-row.amountCents)
         : formatMoney(row.amountCents);
+  const aiCategoryLabel =
+    row.aiSuggestion && row.type !== "transfer"
+      ? getCategoryLabel(
+          row.aiSuggestion.categoryId,
+          row.type === "income" ? "income" : "expense",
+          catalog,
+        )
+      : null;
 
   return (
     <article
@@ -767,6 +944,16 @@ function ImportReviewRow({
         ) : row.suggestionSource === "pattern" ? (
           <span className="badge">Categoria suggerita</span>
         ) : null}
+        {row.aiSuggestion ? (
+          <span className="badge badge--ai">
+            ✨ AI {row.aiSuggestion.confidence}%
+          </span>
+        ) : null}
+        {row.aiSuggestion?.possibleTransfer ? (
+          <span className="badge badge--transfer">
+            AI: possibile trasferimento
+          </span>
+        ) : null}
       </div>
 
       <div className="import-row-editor">
@@ -796,7 +983,11 @@ function ImportReviewRow({
               value={row.category ?? ""}
               disabled={blocked}
               onChange={(event) =>
-                onChange({ category: event.target.value || null })
+                onChange({
+                  category: event.target.value || null,
+                  aiSuggestion: undefined,
+                  categoryEdited: true,
+                })
               }
             >
               <option value="">Scegli categoria</option>
@@ -846,6 +1037,31 @@ function ImportReviewRow({
           </>
         )}
       </div>
+
+      {row.aiSuggestion && row.type !== "transfer" ? (
+        <div className="import-ai-suggestion">
+          <p>
+            <strong>{aiCategoryLabel}</strong>
+            {row.aiSuggestion.merchant
+              ? ` · ${row.aiSuggestion.merchant}`
+              : ""}
+            {" · "}
+            confidenza {row.aiSuggestion.confidence}%
+          </p>
+          {row.aiSuggestion.cleanDescription &&
+          row.aiSuggestion.cleanDescription !== row.description ? (
+            <p>
+              Descrizione proposta: {row.aiSuggestion.cleanDescription}
+            </p>
+          ) : null}
+          {row.aiSuggestion.possibleTransfer ? (
+            <p>
+              La AI sospetta un trasferimento. Il tipo non è stato cambiato:
+              controllalo tu.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {needsMoreAccounts ? (
         <p className="import-row-hint">

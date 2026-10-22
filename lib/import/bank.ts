@@ -17,6 +17,7 @@ import {
   categoriesForType,
   type CategoryCatalog,
 } from "../categories";
+import type { AiSuggestion } from "./ai";
 
 export type SheetCell = string | number | boolean | Date | null | undefined;
 export type SheetMatrix = SheetCell[][];
@@ -69,6 +70,13 @@ export interface BankImportRow {
   valid: boolean;
   importFingerprint: string;
   occurrenceIndex: number;
+  /**
+   * Transient, client-side only. It never changes the deterministic fields
+   * (date, amount, type, description, fingerprint) or the import decision.
+   */
+  aiSuggestion?: AiSuggestion;
+  /** User touched the category/type: never send this row to AI again. */
+  categoryEdited?: boolean;
 }
 
 export interface BuildRowsInput {
@@ -853,6 +861,56 @@ export function buildBankRows(input: BuildRowsInput): BankImportRow[] {
   }
 
   return rows;
+}
+
+/**
+ * AI is called only for rows that no personal rule, deterministic pattern or
+ * transfer detection has already classified. Duplicates, invalid and excluded
+ * rows never leave the browser for AI analysis.
+ */
+export function isAiCandidate(
+  row: BankImportRow,
+  categoryCatalog?: CategoryCatalog,
+): boolean {
+  if (row.aiSuggestion || row.categoryEdited || row.duplicate || !row.include) {
+    return false;
+  }
+  if (!row.valid || !row.date || !row.description) return false;
+  if (row.type === "transfer") return false;
+  if (row.issues.some((issue) => issue !== DUPLICATE_ISSUE)) return false;
+  if (row.suggestionSource !== "fallback" && row.suggestionSource !== "none") {
+    return false;
+  }
+  return categoriesForType(row.type, categoryCatalog).length > 0;
+}
+
+/**
+ * Applies only category metadata. The original description, amount, date,
+ * type, account, fingerprint, duplicate flag and inclusion stay untouched.
+ */
+export function applyAiSuggestions(
+  rows: BankImportRow[],
+  suggestions: AiSuggestion[],
+  categoryCatalog?: CategoryCatalog,
+): BankImportRow[] {
+  const byRef = new Map(suggestions.map((suggestion) => [suggestion.ref, suggestion]));
+
+  return rows.map((row) => {
+    if (!isAiCandidate(row, categoryCatalog)) return row;
+    const suggestion = byRef.get(row.id);
+    if (!suggestion) return row;
+    const isAllowed = categoriesForType(
+      row.type,
+      categoryCatalog,
+    ).some((category) => category.id === suggestion.categoryId);
+    if (!isAllowed) return row;
+
+    return {
+      ...row,
+      category: suggestion.categoryId,
+      aiSuggestion: suggestion,
+    };
+  });
 }
 
 export function isImportRowReady(row: BankImportRow): boolean {
