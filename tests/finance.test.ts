@@ -12,6 +12,7 @@ import {
   savingsRate,
   snapshotSeries,
   summarizeTransactions,
+  summarizeYear,
 } from "../lib/finance";
 import {
   formatMoney,
@@ -385,5 +386,92 @@ describe("historical summaries", () => {
     expect(summary.source).toBe("transactions");
     expect(summary.incomeCents).toBe(100000);
     expect(summary.expenseCents).toBe(0);
+  });
+});
+
+describe("annual summaries", () => {
+  it("sums net savings for every month in the year", () => {
+    const annual = summarizeYear(
+      "2026",
+      [
+        tx({
+          id: "jan-income",
+          date: "2026-01-03",
+          type: "income",
+          category: "stipendio",
+          amountCents: 200000,
+        }),
+        tx({ id: "jan-expense", date: "2026-01-04", amountCents: 50000 }),
+        tx({
+          id: "feb-income",
+          date: "2026-02-03",
+          type: "income",
+          category: "stipendio",
+          amountCents: 150000,
+        }),
+        tx({ id: "feb-expense", date: "2026-02-04", amountCents: 90000 }),
+        tx({
+          id: "previous-year",
+          date: "2025-12-31",
+          type: "income",
+          category: "stipendio",
+          amountCents: 999999,
+        }),
+        tx({
+          id: "next-year",
+          date: "2027-01-01",
+          type: "income",
+          category: "stipendio",
+          amountCents: 888888,
+        }),
+      ],
+      [],
+    );
+
+    expect(annual.incomeCents).toBe(350000);
+    expect(annual.expenseCents).toBe(140000);
+    expect(annual.savingsCents).toBe(210000);
+    expect(annual.monthsWithData).toEqual(["2026-01", "2026-02"]);
+  });
+
+  it("includes historical months and excludes transfers", () => {
+    const annual = summarizeYear(
+      "2026",
+      [
+        tx({
+          id: "jan-income",
+          date: "2026-01-05",
+          type: "income",
+          category: "stipendio",
+          amountCents: 100000,
+        }),
+        tx({ id: "jan-expense", date: "2026-01-06", amountCents: 30000 }),
+        tx({
+          id: "transfer",
+          date: "2026-01-07",
+          type: "transfer",
+          category: null,
+          amountCents: 40000,
+          accountId: "bank",
+          toAccountId: "investments",
+        }),
+      ],
+      [historical],
+    );
+
+    expect(annual.incomeCents).toBe(250000);
+    expect(annual.expenseCents).toBe(70000);
+    expect(annual.savingsCents).toBe(180000);
+    expect(annual.monthsWithData).toEqual(["2026-01", "2026-09"]);
+  });
+
+  it("returns an empty year when there is no data", () => {
+    expect(summarizeYear("2024", [], [])).toEqual({
+      year: "2024",
+      incomeCents: 0,
+      expenseCents: 0,
+      savingsCents: 0,
+      monthsWithData: [],
+    });
   });
 });

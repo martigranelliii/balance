@@ -437,6 +437,63 @@
   color: var(--deep);
 }
 
+.annual-savings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 15px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+}
+
+.annual-savings--hero {
+  margin: 18px 0 0;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(44, 74, 104, 0.12);
+  border-radius: 0;
+  background: transparent;
+}
+
+.annual-savings-copy {
+  min-width: 0;
+}
+
+.annual-savings-label {
+  display: block;
+  color: var(--slate);
+  font-size: 8.5px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.annual-savings-note {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.annual-savings-value {
+  flex-shrink: 0;
+  color: var(--deep);
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.annual-savings--negative .annual-savings-value {
+  color: var(--danger);
+}
+
 .month-progress {
   margin-top: 18px;
   padding-top: 14px;

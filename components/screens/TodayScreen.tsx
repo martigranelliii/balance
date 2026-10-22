@@ -9,6 +9,7 @@ import {
   recentTransactions,
   snapshotChange,
   sortSnapshots,
+  summarizeYear,
 } from "@/lib/finance";
 import {
   allCategoriesForType,
@@ -36,6 +37,7 @@ import { CategoryIcon } from "../ui/CategoryIcon";
 import { TransactionRow } from "../TransactionRow";
 import { EmptyState } from "../ui/EmptyState";
 import { Sparkline } from "../ui/Sparkline";
+import { AnnualSavings } from "../ui/AnnualSavings";
 
 interface TodayScreenProps {
   data: BalanceData;
@@ -66,6 +68,11 @@ export function TodayScreen({
 }: TodayScreenProps) {
   const summary = getMonthSummary(
     month,
+    data.transactions,
+    data.historicalMonthlySummaries,
+  );
+  const annual = summarizeYear(
+    monthYear(month),
     data.transactions,
     data.historicalMonthlySummaries,
   );
@@ -210,6 +217,8 @@ export function TodayScreen({
               <dd>{summary.source === "historical" ? "—" : summary.transactionCount}</dd>
             </div>
           </dl>
+
+          <AnnualSavings summary={annual} variant="hero" />
 
           <div className="month-progress">
             <div className="month-progress-label">
@@ -386,7 +395,7 @@ export function TodayScreen({
                 </div>
               ) : (
                 <p className="panel-caption">
-                  Aggiorna i saldi per vedere l'andamento.
+                  Aggiorna i saldi per vedere l&apos;andamento.
                 </p>
               )}
               <button type="button" className="panel-footer-link" onClick={onOpenNetWorth}>

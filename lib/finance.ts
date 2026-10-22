@@ -142,6 +142,41 @@ export function getMonthSummary(
   return emptyMonthSummary(month);
 }
 
+export interface YearSummary {
+  year: string;
+  incomeCents: number;
+  expenseCents: number;
+  savingsCents: number;
+  monthsWithData: string[];
+}
+
+/**
+ * Net savings for the whole year: the sum of every month's income minus
+ * expenses, with both transaction-level and historical months included.
+ * Transfers stay out because they are not income or spending.
+ */
+export function summarizeYear(
+  year: string,
+  transactions: Transaction[],
+  historicalSummaries: HistoricalMonthlySummary[],
+): YearSummary {
+  const months = Array.from(
+    { length: 12 },
+    (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`,
+  );
+  const withData = months
+    .map((month) => getMonthSummary(month, transactions, historicalSummaries))
+    .filter((summary) => summary.source !== "empty");
+
+  return {
+    year,
+    incomeCents: sumCents(withData.map((summary) => summary.incomeCents)),
+    expenseCents: sumCents(withData.map((summary) => summary.expenseCents)),
+    savingsCents: sumCents(withData.map((summary) => summary.savingsCents)),
+    monthsWithData: withData.map((summary) => summary.month),
+  };
+}
+
 export function getBudgetForMonth(
   budgets: MonthlyBudget[],
   month: string,

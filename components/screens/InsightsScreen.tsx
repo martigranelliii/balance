@@ -3,16 +3,18 @@
 import type { BalanceData } from "@/lib/types";
 import { buildInsights, insightIntro } from "@/lib/insights";
 import { createCategoryCatalog } from "@/lib/categories";
+import { summarizeYear } from "@/lib/finance";
 import {
   summarizeBusinessTrips,
   summarizePersonalBalance,
 } from "@/lib/trips";
 import { formatMoney, formatPercent } from "@/lib/money";
-import { monthTitle } from "@/lib/dates";
+import { monthTitle, monthYear } from "@/lib/dates";
 import { MonthNav } from "../ui/MonthNav";
 import { Icon } from "../ui/Icon";
 import { RateRing } from "../ui/RateRing";
 import { EmptyState } from "../ui/EmptyState";
+import { AnnualSavings } from "../ui/AnnualSavings";
 
 interface InsightsScreenProps {
   data: BalanceData;
@@ -37,6 +39,11 @@ export function InsightsScreen({
     categoryCatalog: createCategoryCatalog(data),
   });
   const { summary } = insights;
+  const annual = summarizeYear(
+    monthYear(month),
+    data.transactions,
+    data.historicalMonthlySummaries,
+  );
   const tripSummary = summarizeBusinessTrips(data.businessTrips);
   const personalSummary = summarizePersonalBalance(data.personalBalanceItems);
   const hasExtraInfo =
@@ -163,6 +170,8 @@ export function InsightsScreen({
           </p>
         </>
       )}
+
+      <AnnualSavings summary={annual} />
 
       {hasExtraInfo ? (
         <section className="insight-assets" aria-labelledby="insight-assets-title">
