@@ -167,7 +167,7 @@ export function SettingsScreen({
     );
   }
 
-  function selectTheme(theme: Exclude<ThemeName, "classic">): void {
+  function selectTheme(theme: ThemeName): void {
     updateSettings({ theme });
     const label = THEME_OPTIONS.find((option) => option.id === theme)?.label;
     onToast(`Tema ${label ?? theme} attivo. Sincronizzato con il tuo account.`);
@@ -292,9 +292,9 @@ export function SettingsScreen({
             })}
           </div>
           <p className="settings-note">
-            {data.settings.theme === "classic"
-              ? "Stai usando il tema originale di Balance. Scegli Sage, Rosa o Minimal quando vuoi: i dati non cambiano."
-              : "Il tema è salvato nelle impostazioni del tuo account. Lo ritrovi dopo il login, anche su un altro dispositivo."}
+            Il tema scelto è salvato nelle impostazioni del tuo account. Lo
+            ritrovi dopo il login, anche su un altro dispositivo. Classico
+            mantiene la palette originale di Balance.
           </p>
         </div>
       </section>

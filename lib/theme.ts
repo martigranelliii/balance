@@ -1,14 +1,20 @@
 import type { ThemeName } from "./types";
 
 export interface ThemeOption {
-  id: Exclude<ThemeName, "classic">;
+  id: ThemeName;
   label: string;
   description: string;
   swatches: [string, string, string];
 }
 
-/** The three new palettes. `classic` remains the fallback for old documents. */
+/** All selectable palettes, including the original one as safe fallback. */
 export const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: "classic",
+    label: "Classico",
+    description: "Il tema originale: avorio, blu polvere e salvia fredda.",
+    swatches: ["#f7f4ec", "#dbe8f1", "#2c4a68"],
+  },
   {
     id: "sage",
     label: "Sage",
