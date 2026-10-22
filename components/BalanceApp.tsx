@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Account,
   BusinessTrip,
@@ -34,6 +34,7 @@ import {
 import { getMonthSummary } from "@/lib/finance";
 import { formatMoney } from "@/lib/money";
 import { createCategoryCatalog } from "@/lib/categories";
+import { applyTheme } from "@/lib/theme";
 import type {
   BusinessTripInput,
   NewTransactionInput,
@@ -129,11 +130,32 @@ export function BalanceApp() {
   const [toast, setToast] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const autoSnapshotDone = useRef(false);
 
   useEffect(() => {
     initializeStore();
     setMonth(currentMonthKey());
   }, []);
+
+  useEffect(() => {
+    applyTheme(data.settings.theme);
+    return () => {
+      delete document.documentElement.dataset.theme;
+    };
+  }, [data.settings.theme]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !month ||
+      autoSnapshotDone.current ||
+      data.accounts.length === 0
+    ) {
+      return;
+    }
+    autoSnapshotDone.current = true;
+    captureSnapshot();
+  }, [data.accounts.length, hydrated, month]);
 
   useEffect(() => {
     const update = () => setIsOffline(!navigator.onLine);
@@ -657,6 +679,7 @@ export function BalanceApp() {
       {settleTripCandidate ? (
         <SettleTripSheet
           trip={settleTripCandidate}
+          trips={data.businessTrips}
           transactions={data.transactions}
           catalog={categoryCatalog}
           onSettle={handleMarkTripReimbursed}

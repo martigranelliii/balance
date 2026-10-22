@@ -3,6 +3,7 @@ import type {
   BusinessTripExpenseCategory,
   PersonalBalanceDirection,
   PersonalBalanceItem,
+  Transaction,
 } from "./types";
 import { addMonths, monthKeyFromDate } from "./dates";
 import { isSafeCents, sumCents } from "./money";
@@ -25,6 +26,13 @@ export const BUSINESS_TRIP_EXPENSE_CATEGORIES = Object.keys(
 ) as BusinessTripExpenseCategory[];
 
 export interface BusinessTripTotals {
+  /** Documented advances only: these are a reimbursement, not income. */
+  expenseReimbursementCents: number;
+  /** Kilometres plus allowance: this is additional real income. */
+  tripEarningsCents: number;
+  /** expenseReimbursement + tripEarnings. */
+  expectedSettlementCents: number;
+  /** Backward-compatible aliases. */
   expensesCents: number;
   kmReimbursementCents: number;
   allowanceCents: number;
@@ -39,6 +47,17 @@ export interface BusinessTripSummary extends BusinessTripTotals {
 export interface BusinessTripMonthGroup extends BusinessTripTotals {
   month: string;
   trips: BusinessTrip[];
+}
+
+export interface LinkedTripIncome {
+  transaction: Transaction;
+  trips: BusinessTrip[];
+  receivedCents: number;
+  expenseReimbursementCents: number;
+  tripEarningsCents: number;
+  expectedSettlementCents: number;
+  /** Received amount minus documented advances only. */
+  effectiveIncomeCents: number;
 }
 
 export interface PersonalBalanceTotals {
@@ -86,11 +105,16 @@ export function businessTripTotals(trip: BusinessTrip): BusinessTripTotals {
   const expensesCents = businessTripExpenseCents(trip);
   const kmReimbursementCents = businessTripKmReimbursementCents(trip);
   const allowanceCents = nonNegativeInteger(trip.allowanceCents);
+  const tripEarningsCents = kmReimbursementCents + allowanceCents;
+  const expectedSettlementCents = expensesCents + tripEarningsCents;
   return {
+    expenseReimbursementCents: expensesCents,
+    tripEarningsCents,
+    expectedSettlementCents,
     expensesCents,
     kmReimbursementCents,
     allowanceCents,
-    totalCents: expensesCents + kmReimbursementCents + allowanceCents,
+    totalCents: expectedSettlementCents,
   };
 }
 
@@ -100,6 +124,15 @@ export function summarizeBusinessTrips(
   const openTrips = trips.filter((trip) => trip.status === "open");
   const totals = openTrips.map(businessTripTotals);
   return {
+    expenseReimbursementCents: sumCents(
+      totals.map((item) => item.expenseReimbursementCents),
+    ),
+    tripEarningsCents: sumCents(
+      totals.map((item) => item.tripEarningsCents),
+    ),
+    expectedSettlementCents: sumCents(
+      totals.map((item) => item.expectedSettlementCents),
+    ),
     expensesCents: sumCents(totals.map((item) => item.expensesCents)),
     kmReimbursementCents: sumCents(
       totals.map((item) => item.kmReimbursementCents),
@@ -157,6 +190,15 @@ export function groupOpenTripsBySettlementMonth(
       return {
         month,
         trips: monthTrips,
+        expenseReimbursementCents: sumCents(
+          totals.map((item) => item.expenseReimbursementCents),
+        ),
+        tripEarningsCents: sumCents(
+          totals.map((item) => item.tripEarningsCents),
+        ),
+        expectedSettlementCents: sumCents(
+          totals.map((item) => item.expectedSettlementCents),
+        ),
         expensesCents: sumCents(totals.map((item) => item.expensesCents)),
         kmReimbursementCents: sumCents(
           totals.map((item) => item.kmReimbursementCents),
@@ -164,6 +206,60 @@ export function groupOpenTripsBySettlementMonth(
         allowanceCents: sumCents(totals.map((item) => item.allowanceCents)),
         totalCents: sumCents(totals.map((item) => item.totalCents)),
       };
+    });
+}
+
+/**
+ * The bank transaction stays exactly as received. Only documented advances
+ * reduce effective income; kilometres and allowance remain real earnings.
+ */
+export function linkedIncomeForTransaction(
+  transaction: Transaction,
+  trips: BusinessTrip[],
+): LinkedTripIncome {
+  const linkedTrips = trips.filter(
+    (trip) =>
+      trip.status === "reimbursed" &&
+      trip.linkedSalaryTransactionId === transaction.id,
+  );
+  const totals = linkedTrips.map(businessTripTotals);
+  const expenseReimbursementCents = sumCents(
+    totals.map((item) => item.expenseReimbursementCents),
+  );
+  return {
+    transaction,
+    trips: linkedTrips,
+    receivedCents: transaction.amountCents,
+    expenseReimbursementCents,
+    tripEarningsCents: sumCents(totals.map((item) => item.tripEarningsCents)),
+    expectedSettlementCents: sumCents(
+      totals.map((item) => item.expectedSettlementCents),
+    ),
+    effectiveIncomeCents: transaction.amountCents - expenseReimbursementCents,
+  };
+}
+
+/** All income movements with at least one reimbursed trip linked to them. */
+export function linkedTripIncome(
+  transactions: Transaction[],
+  trips: BusinessTrip[],
+): LinkedTripIncome[] {
+  return transactions
+    .filter(
+      (transaction) =>
+        transaction.type === "income" &&
+        trips.some(
+          (trip) =>
+            trip.status === "reimbursed" &&
+            trip.linkedSalaryTransactionId === transaction.id,
+        ),
+    )
+    .map((transaction) => linkedIncomeForTransaction(transaction, trips))
+    .sort((a, b) => {
+      if (a.transaction.date !== b.transaction.date) {
+        return a.transaction.date < b.transaction.date ? 1 : -1;
+      }
+      return a.transaction.createdAt < b.transaction.createdAt ? 1 : -1;
     });
 }
 

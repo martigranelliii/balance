@@ -5,6 +5,7 @@ import type {
   BackupSummary,
   BalanceData,
   LoadResult,
+  ThemeName,
 } from "@/lib/types";
 import {
   backupFileName,
@@ -27,6 +28,7 @@ import {
   createCategoryCatalog,
 } from "@/lib/categories";
 import { formatRateInput, parseRateToMills } from "@/lib/trips";
+import { THEME_OPTIONS } from "@/lib/theme";
 import { CategorySettings } from "../CategorySettings";
 import { useAuth } from "../auth/AuthContext";
 import { Sheet } from "../ui/Sheet";
@@ -165,6 +167,12 @@ export function SettingsScreen({
     );
   }
 
+  function selectTheme(theme: Exclude<ThemeName, "classic">): void {
+    updateSettings({ theme });
+    const label = THEME_OPTIONS.find((option) => option.id === theme)?.label;
+    onToast(`Tema ${label ?? theme} attivo. Sincronizzato con il tuo account.`);
+  }
+
   const lastUpdated = data.updatedAt
     ? timestampToLocalLabel(data.updatedAt)
     : "—";
@@ -244,6 +252,52 @@ export function SettingsScreen({
           </div>
         </section>
       ) : null}
+
+      <section className="settings-section" aria-labelledby="theme-title">
+        <p className="eyebrow">Aspetto</p>
+        <div className="settings-card">
+          <h2 id="theme-title">Tema</h2>
+          <p>
+            Scegli la palette di Balance. Il tema cambia sfondo, navigazione,
+            card, accenti, selezioni e grafici, e resta sincronizzato con il tuo
+            account.
+          </p>
+          <div className="theme-options" role="group" aria-label="Scegli il tema">
+            {THEME_OPTIONS.map((option) => {
+              const active = data.settings.theme === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`theme-option${active ? " theme-option--active" : ""}`}
+                  onClick={() => selectTheme(option.id)}
+                  aria-pressed={active}
+                >
+                  <span
+                    className="theme-option-preview"
+                    style={{
+                      background: `linear-gradient(135deg, ${option.swatches[0]} 0 42%, ${option.swatches[1]} 42% 68%, ${option.swatches[2]} 68% 100%)`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="theme-option-copy">
+                    <strong>{option.label}</strong>
+                    <span>{option.description}</span>
+                  </span>
+                  <span className="theme-option-check" aria-hidden="true">
+                    {active ? <Icon name="check" size={16} /> : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="settings-note">
+            {data.settings.theme === "classic"
+              ? "Stai usando il tema originale di Balance. Scegli Sage, Rosa o Minimal quando vuoi: i dati non cambiano."
+              : "Il tema è salvato nelle impostazioni del tuo account. Lo ritrovi dopo il login, anche su un altro dispositivo."}
+          </p>
+        </div>
+      </section>
 
       <section className="settings-section" aria-labelledby="privacy-title">
         <p className="eyebrow">Privacy</p>

@@ -8,9 +8,8 @@ import type {
 } from "@/lib/types";
 import {
   calculateNetWorth,
-  latestSnapshot,
   snapshotChange,
-  sortSnapshots,
+  snapshotSeries,
 } from "@/lib/finance";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/categories";
 import {
@@ -23,7 +22,7 @@ import { formatShortDate, timestampToLocalLabel } from "@/lib/dates";
 import { Icon } from "../ui/Icon";
 import { AccountIcon } from "../ui/CategoryIcon";
 import { EmptyState } from "../ui/EmptyState";
-import { Sparkline } from "../ui/Sparkline";
+import { NetWorthChart } from "../ui/NetWorthChart";
 
 interface NetWorthScreenProps {
   data: BalanceData;
@@ -193,8 +192,8 @@ export function NetWorthScreen({
   onDeletePersonalItem,
 }: NetWorthScreenProps) {
   const totals = calculateNetWorth(data.accounts);
-  const snapshots = sortSnapshots(data.netWorthSnapshots);
-  const latest = latestSnapshot(data.netWorthSnapshots);
+  const snapshots = snapshotSeries(data.netWorthSnapshots);
+  const latest = snapshots.at(-1);
   const change = snapshotChange(data.netWorthSnapshots);
   const liquidAccounts = data.accounts.filter(
     (account) => account.type !== "investment" && account.includeInNetWorth,
@@ -205,7 +204,19 @@ export function NetWorthScreen({
   const excludedAccounts = data.accounts.filter(
     (account) => !account.includeInNetWorth,
   );
-  const chartValues = snapshots.slice(-12).map((item) => item.totalCents);
+  const chartSnapshots = snapshots.slice(-30);
+  const chartPoints = chartSnapshots.map((snapshot) => ({
+    date: snapshot.date,
+    totalCents: snapshot.totalCents,
+  }));
+  const compositionAccounts = [...totals.includedAccounts]
+    .filter((account) => account.currentBalanceCents !== 0)
+    .sort(
+      (a, b) =>
+        Math.abs(b.currentBalanceCents) - Math.abs(a.currentBalanceCents),
+    );
+  const compositionGross =
+    totals.assetsCents + totals.liabilitiesCents || 1;
   const personalTotals = summarizePersonalBalance(data.personalBalanceItems);
   const settledItems = settledPersonalItems(data.personalBalanceItems);
 
@@ -263,7 +274,7 @@ export function NetWorthScreen({
               ) : null}
             </div>
 
-            <div className="networth-splits">
+            <div className="networth-splits networth-splits--four">
               <div>
                 <span className="networth-split-label">Liquidità</span>
                 <strong>{formatMoney(totals.liquidCents)}</strong>
@@ -271,6 +282,18 @@ export function NetWorthScreen({
               <div>
                 <span className="networth-split-label">Investimenti</span>
                 <strong>{formatMoney(totals.investmentsCents)}</strong>
+              </div>
+              <div>
+                <span className="networth-split-label">Attività</span>
+                <strong>{formatMoney(totals.assetsCents)}</strong>
+              </div>
+              <div>
+                <span className="networth-split-label">Passività</span>
+                <strong>
+                  {totals.liabilitiesCents > 0
+                    ? `−${formatMoney(totals.liabilitiesCents)}`
+                    : formatMoney(0)}
+                </strong>
               </div>
             </div>
 
@@ -297,49 +320,160 @@ export function NetWorthScreen({
           </section>
 
           <section className="panel trend-panel" aria-labelledby="trend-title">
-            <div className="panel-heading">
+            <div className="panel-heading trend-panel-heading">
               <div>
                 <p className="eyebrow">Nel tempo</p>
                 <h2 id="trend-title">Andamento del patrimonio</h2>
               </div>
               {change ? (
                 <span
-                  className={`change-label${change.changeCents > 0 ? " change-label--up" : ""}`}
+                  className={`change-label${
+                    change.changeCents > 0
+                      ? " change-label--up"
+                      : change.changeCents < 0
+                        ? " change-label--down"
+                        : ""
+                  }`}
                 >
                   {change.changeCents > 0 ? "+" : ""}
                   {formatMoney(change.changeCents)}
-                  <small> dall’ultimo aggiornamento</small>
+                  <small>
+                    rispetto al {formatShortDate(change.from.date, true)}
+                  </small>
+                </span>
+              ) : snapshots.length > 0 ? (
+                <span className="trend-coming">
+                  <Icon name="camera" size={13} />
+                  Storico in costruzione
                 </span>
               ) : null}
             </div>
 
-            {chartValues.length >= 2 ? (
+            {chartPoints.length >= 2 ? (
               <>
-                <Sparkline
-                  values={chartValues}
-                  label={`Andamento del patrimonio da ${formatShortDate(
-                    snapshots[Math.max(0, snapshots.length - chartValues.length)].date,
-                  )} a ${formatShortDate(snapshots.at(-1)?.date ?? "")}`}
-                  className="sparkline--large"
+                <NetWorthChart
+                  key={chartPoints[chartPoints.length - 1]?.date}
+                  points={chartPoints}
                 />
-                <div className="trend-axis">
-                  <span>
-                    {formatShortDate(
-                      snapshots[Math.max(0, snapshots.length - chartValues.length)]
-                        .date,
-                    )}
-                  </span>
-                  <span>{formatShortDate(snapshots.at(-1)?.date ?? "")}</span>
-                </div>
+                {snapshots.length > chartPoints.length ? (
+                  <p className="trend-window-note">
+                    Ultimi {chartPoints.length} aggiornamenti su{" "}
+                    {snapshots.length} disponibili.
+                  </p>
+                ) : null}
               </>
             ) : (
-              <p className="panel-caption">
-                {snapshots.length === 1
-                  ? "L'andamento compare dopo il prossimo aggiornamento."
-                  : "Aggiorna un saldo o salva una fotografia per vedere l'andamento."}
-              </p>
+              <div className="trend-empty">
+                <span className="trend-empty-icon">
+                  <Icon name="camera" size={20} />
+                </span>
+                <div>
+                  <strong>
+                    {snapshots.length === 1
+                      ? "C’è una sola fotografia del patrimonio"
+                      : "Lo storico parte da qui"}
+                  </strong>
+                  <p>
+                    {snapshots.length === 1
+                      ? "Non inventiamo dati passati: il grafico comparirà dopo il prossimo aggiornamento. Balance salva automaticamente una fotografia al giorno quando apri l’app."
+                      : "Aggiorna un saldo o salva una fotografia. Da lì in avanti vedrai l’andamento reale, senza ricostruzioni inventate."}
+                  </p>
+                </div>
+              </div>
             )}
+
+            <p className="trend-footnote">
+              Ogni fotografia contiene data, totale e dettaglio dei conti. Gli
+              aggiornamenti sono automatici una volta al giorno e manuali quando
+              vuoi.
+            </p>
           </section>
+
+          {compositionAccounts.length > 0 ? (
+            <section
+              className="panel composition-panel"
+              aria-labelledby="composition-title"
+            >
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Composizione attuale</p>
+                  <h2 id="composition-title">Dove sono i tuoi soldi</h2>
+                </div>
+                <span className="composition-total">
+                  {formatMoney(totals.totalCents)}
+                </span>
+              </div>
+              <div
+                className="composition-bar"
+                role="img"
+                aria-label="Composizione del patrimonio per conto"
+              >
+                {compositionAccounts.map((account, position) => {
+                  const share =
+                    (Math.abs(account.currentBalanceCents) /
+                      compositionGross) *
+                    100;
+                  return (
+                    <span
+                      key={account.id}
+                      className={
+                        account.currentBalanceCents < 0
+                          ? "composition-segment composition-segment--liability"
+                          : "composition-segment"
+                      }
+                      style={{
+                        width: `${share}%`,
+                        opacity:
+                          account.currentBalanceCents < 0
+                            ? 1
+                            : Math.max(0.4, 1 - position * 0.09),
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <ul className="composition-list">
+                {compositionAccounts.map((account) => {
+                  const share =
+                    (Math.abs(account.currentBalanceCents) /
+                      compositionGross) *
+                    100;
+                  return (
+                    <li key={account.id}>
+                      <span className="composition-name">
+                        <span className="composition-dot" aria-hidden="true" />
+                        {account.name}
+                      </span>
+                      <span className="composition-share">
+                        {share.toLocaleString("it-IT", {
+                          maximumFractionDigits: 0,
+                        })}
+                        %
+                      </span>
+                      <strong
+                        className={
+                          account.currentBalanceCents < 0
+                            ? "composition-negative"
+                            : undefined
+                        }
+                      >
+                        {formatMoney(account.currentBalanceCents)}
+                      </strong>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="composition-split">
+                <span>
+                  Attività <strong>{formatMoney(totals.assetsCents)}</strong>
+                </span>
+                <span>
+                  Passività{" "}
+                  <strong>{formatMoney(totals.liabilitiesCents)}</strong>
+                </span>
+              </div>
+            </section>
+          ) : null}
 
           <section className="account-section" aria-labelledby="liquid-title">
             <div className="section-heading section-heading--tight">
@@ -506,8 +640,8 @@ export function NetWorthScreen({
           <strong>Saldi aggiornati a mano</strong>
           <p>
             Balance non si collega alla banca e non legge i tuoi conti. Aggiorni
-            tu i saldi. Ogni aggiornamento salva una fotografia datata del
-            patrimonio.
+            tu i saldi. Balance salva una fotografia datata al giorno e quando
+            aggiorni un saldo, così lo storico cresce senza duplicati.
           </p>
         </div>
       </div>

@@ -11,6 +11,8 @@ import {
   formatRateInput,
   groupOpenTripsBySettlementMonth,
   groupPersonalByPerson,
+  linkedIncomeForTransaction,
+  linkedTripIncome,
   parseRateToMills,
   summarizeBusinessTrips,
   summarizePersonalBalance,
@@ -97,6 +99,79 @@ describe("business trip totals", () => {
     expect(totals.kmReimbursementCents).toBe(7320);
     expect(totals.allowanceCents).toBe(4350);
     expect(totals.totalCents).toBe(14530);
+  });
+
+  it("separates expense reimbursement from real trip earnings", () => {
+    const totals = businessTripTotals(trip());
+    expect(totals.expenseReimbursementCents).toBe(2860);
+    expect(totals.tripEarningsCents).toBe(11670);
+    expect(totals.expectedSettlementCents).toBe(14530);
+    expect(totals.totalCents).toBe(totals.expectedSettlementCents);
+  });
+
+  it("subtracts only expense reimbursements from a linked salary", () => {
+    const salaryTransaction = salary({ amountCents: 250000 });
+    const first = trip({
+      id: "trip_first",
+      status: "reimbursed",
+      linkedSalaryTransactionId: salaryTransaction.id,
+      expenses: [expense({ amountCents: 2860 })],
+    });
+    const second = trip({
+      id: "trip_second",
+      status: "reimbursed",
+      linkedSalaryTransactionId: salaryTransaction.id,
+      expenses: [expense({ id: "expense_second", amountCents: 9310 })],
+      kilometers: 0,
+      allowanceCents: 0,
+    });
+    const unrelated = trip({
+      id: "trip_unrelated",
+      status: "reimbursed",
+      linkedSalaryTransactionId: "other_salary",
+      expenses: [expense({ id: "expense_other", amountCents: 99999 })],
+    });
+
+    const income = linkedIncomeForTransaction(salaryTransaction, [
+      first,
+      second,
+      unrelated,
+    ]);
+    expect(income.trips).toHaveLength(2);
+    expect(income.receivedCents).toBe(250000);
+    expect(income.expenseReimbursementCents).toBe(12170);
+    expect(income.tripEarningsCents).toBe(
+      businessTripTotals(first).tripEarningsCents +
+        businessTripTotals(second).tripEarningsCents,
+    );
+    expect(income.effectiveIncomeCents).toBe(237830);
+  });
+
+  it("lists only income transactions that have linked reimbursed trips", () => {
+    const salaryTransaction = salary({ amountCents: 250000 });
+    const otherIncome = salary({
+      id: "tx_other",
+      date: "2026-08-20",
+      amountCents: 50000,
+      description: "Vinted",
+    });
+    const linked = trip({
+      status: "reimbursed",
+      linkedSalaryTransactionId: salaryTransaction.id,
+    });
+    const unlinked = trip({
+      id: "trip_unlinked",
+      status: "reimbursed",
+      linkedSalaryTransactionId: otherIncome.id,
+    });
+    const rows = linkedTripIncome(
+      [salaryTransaction, otherIncome],
+      [linked, unlinked],
+    );
+    expect(rows.map((row) => row.transaction.id)).toEqual([
+      "tx_salary",
+      "tx_other",
+    ]);
   });
 
   it("predicts the salary month two months after the trip", () => {
@@ -301,6 +376,21 @@ describe("backup and migration", () => {
     expect(parsed.summary.personalBalanceCount).toBe(1);
     expect(parsed.data.businessTrips[0].id).toBe("trip_1");
     expect(parsed.data.personalBalanceItems[0].id).toBe("personal_1");
+  });
+
+  it("defaults the theme safely and keeps it across a backup round-trip", () => {
+    const old = normalizeBalanceData({
+      version: 1,
+      transactions: [salary()],
+      settings: { reflectionEnabled: true },
+    });
+    expect(old.data.settings.theme).toBe("classic");
+
+    const data = { ...createEmptyData(), settings: { ...createEmptyData().settings, theme: "rose" as const } };
+    const parsed = parseBackup(serializeBackup(data));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.data.settings.theme).toBe("rose");
   });
 
   it("keeps old balance.v1 data and adds empty collections", () => {

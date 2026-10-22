@@ -1048,3 +1048,235 @@
     font-size: 32px;
   }
 }
+
+/* Trip reimbursement vs earnings */
+.trip-breakdown-reimbursement dt,
+.trip-breakdown-reimbursement dd {
+  color: var(--deep);
+  font-weight: 650;
+}
+
+.trip-breakdown-earnings {
+  margin-top: 5px;
+  padding-top: 7px !important;
+  border-top: 1px dashed var(--line);
+}
+
+.trip-breakdown-earnings dt {
+  color: var(--deep);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.trip-breakdown-earnings dd {
+  color: var(--deep);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.linked-income-section {
+  margin-top: 4px;
+}
+
+.linked-income-lede {
+  margin: -1px 0 12px;
+  color: var(--slate);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.linked-income-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.linked-income-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--paper) 82%, transparent), color-mix(in srgb, var(--powder) 24%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+}
+
+.linked-income-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linked-income-head strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.linked-income-head span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.linked-income-bank {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.linked-income-breakdown {
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.linked-income-breakdown > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.linked-income-breakdown dt {
+  color: var(--slate);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.linked-income-breakdown dd {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.linked-income-extra dd {
+  color: var(--deep);
+}
+
+.linked-income-total {
+  margin-top: 5px;
+  padding-top: 8px !important;
+  border-top: 1px solid var(--line);
+}
+
+.linked-income-total dt {
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.linked-income-total dd {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.linked-income-note {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.trip-settle-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.trip-settle-split span {
+  display: block;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.trip-settle-split strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.settle-income-preview {
+  margin-top: 13px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--powder) 24%, transparent);
+}
+
+.settle-income-preview dl {
+  margin-top: 8px;
+}
+
+.settle-income-preview dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.settle-income-preview dt {
+  color: var(--slate);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.settle-income-preview dd {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.settle-income-total {
+  margin-top: 5px;
+  padding-top: 8px !important;
+  border-top: 1px solid var(--line);
+}
+
+.settle-income-total dt {
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settle-income-total dd {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.settle-income-preview p:last-child {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}

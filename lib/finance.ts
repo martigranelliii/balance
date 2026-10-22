@@ -223,10 +223,24 @@ export function calculateNetWorth(accounts: Account[]): NetWorthTotals {
       .filter((account) => account.type !== "investment")
       .map((account) => account.currentBalanceCents),
   );
+  const assetsCents = sumCents(
+    includedAccounts
+      .filter((account) => account.currentBalanceCents > 0)
+      .map((account) => account.currentBalanceCents),
+  );
+  const liabilitiesCents = Math.abs(
+    sumCents(
+      includedAccounts
+        .filter((account) => account.currentBalanceCents < 0)
+        .map((account) => account.currentBalanceCents),
+    ),
+  );
   return {
     totalCents: liquidCents + investmentsCents,
     liquidCents,
     investmentsCents,
+    assetsCents,
+    liabilitiesCents,
     includedAccounts,
     hasIncludedAccounts: includedAccounts.length > 0,
   };
@@ -241,19 +255,37 @@ export function sortSnapshots(
   });
 }
 
+/**
+ * One point per calendar day, using the most recently written snapshot for that
+ * day. Older documents may contain a duplicate date; this keeps the chart
+ * deterministic without deleting any stored record.
+ */
+export function snapshotSeries(
+  snapshots: NetWorthSnapshot[],
+): NetWorthSnapshot[] {
+  const byDate = new Map<string, NetWorthSnapshot>();
+  for (const snapshot of snapshots) {
+    const existing = byDate.get(snapshot.date);
+    if (!existing || snapshot.createdAt > existing.createdAt) {
+      byDate.set(snapshot.date, snapshot);
+    }
+  }
+  return sortSnapshots(Array.from(byDate.values()));
+}
+
 export function latestSnapshot(
   snapshots: NetWorthSnapshot[],
 ): NetWorthSnapshot | undefined {
-  return sortSnapshots(snapshots).at(-1);
+  return snapshotSeries(snapshots).at(-1);
 }
 
 export function snapshotChange(
   snapshots: NetWorthSnapshot[],
 ): { changeCents: number; from: NetWorthSnapshot; to: NetWorthSnapshot } | null {
-  const sorted = sortSnapshots(snapshots);
-  if (sorted.length < 2) return null;
-  const to = sorted[sorted.length - 1];
-  const from = sorted[sorted.length - 2];
+  const series = snapshotSeries(snapshots);
+  if (series.length < 2) return null;
+  const to = series[series.length - 1];
+  const from = series[series.length - 2];
   return { changeCents: to.totalCents - from.totalCents, from, to };
 }
 

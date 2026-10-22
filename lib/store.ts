@@ -961,7 +961,12 @@ export function deleteAccount(id: string): void {
     toAccountId:
       transaction.toAccountId === id ? undefined : transaction.toAccountId,
   }));
-  commit({ ...snapshot.data, accounts, transactions });
+  const next = upsertTodaySnapshot({
+    ...snapshot.data,
+    accounts,
+    transactions,
+  });
+  commit(next);
 }
 
 export function captureSnapshot(): boolean {
@@ -979,21 +984,40 @@ function upsertTodaySnapshot(data: BalanceData): BalanceData {
   const existing = data.netWorthSnapshots.find(
     (snapshotItem) => snapshotItem.date === today,
   );
-  const createdAt = existing?.createdAt ?? new Date().toISOString();
+  const accounts = totals.includedAccounts.map((account) => ({
+    accountId: account.id,
+    name: account.name,
+    type: account.type,
+    balanceCents: account.currentBalanceCents,
+    includeInNetWorth: true,
+  }));
+  const unchanged =
+    existing !== undefined &&
+    existing.totalCents === totals.totalCents &&
+    existing.liquidCents === totals.liquidCents &&
+    existing.investmentsCents === totals.investmentsCents &&
+    existing.accounts.length === accounts.length &&
+    accounts.every((account, index) => {
+      const saved = existing.accounts[index];
+      return (
+        saved !== undefined &&
+        saved.accountId === account.accountId &&
+        saved.name === account.name &&
+        saved.type === account.type &&
+        saved.balanceCents === account.balanceCents &&
+        saved.includeInNetWorth === account.includeInNetWorth
+      );
+    });
+  if (unchanged) return data;
+
   const updatedSnapshot = {
     id: existing?.id ?? createId("snapshot"),
     date: today,
     totalCents: totals.totalCents,
     liquidCents: totals.liquidCents,
     investmentsCents: totals.investmentsCents,
-    accounts: totals.includedAccounts.map((account) => ({
-      accountId: account.id,
-      name: account.name,
-      type: account.type,
-      balanceCents: account.currentBalanceCents,
-      includeInNetWorth: true,
-    })),
-    createdAt,
+    accounts,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
   };
 
   return {

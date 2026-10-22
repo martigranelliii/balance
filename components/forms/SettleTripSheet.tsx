@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import type { BusinessTrip, Transaction } from "@/lib/types";
-import { businessTripTotals } from "@/lib/trips";
+import {
+  businessTripTotals,
+  linkedIncomeForTransaction,
+} from "@/lib/trips";
 import {
   getCategoryLabel,
   type CategoryCatalog,
@@ -14,6 +17,7 @@ import { Icon } from "../ui/Icon";
 
 interface SettleTripSheetProps {
   trip: BusinessTrip;
+  trips: BusinessTrip[];
   transactions: Transaction[];
   catalog?: CategoryCatalog;
   onSettle: (linkedSalaryTransactionId?: string) => void;
@@ -22,6 +26,7 @@ interface SettleTripSheetProps {
 
 export function SettleTripSheet({
   trip,
+  trips,
   transactions,
   catalog,
   onSettle,
@@ -33,6 +38,20 @@ export function SettleTripSheet({
   const incomeTransactions = transactions
     .filter((transaction) => transaction.type === "income")
     .sort((a, b) => (a.date < b.date ? 1 : -1));
+  const selectedIncome = incomeTransactions.find(
+    (transaction) => transaction.id === linkedId,
+  );
+  const existingLinked = selectedIncome
+    ? linkedIncomeForTransaction(
+        selectedIncome,
+        trips.filter((item) => item.id !== trip.id),
+      )
+    : null;
+  const previewExpenseReimbursement =
+    (existingLinked?.expenseReimbursementCents ?? 0) +
+    totals.expenseReimbursementCents;
+  const previewEffectiveIncome =
+    (selectedIncome?.amountCents ?? 0) - previewExpenseReimbursement;
 
   function settle() {
     try {
@@ -55,11 +74,22 @@ export function SettleTripSheet({
       <div className="trip-settle-summary">
         <div>
           <span>{trip.title}</span>
-          <strong>{formatMoney(totals.totalCents)}</strong>
+          <strong>{formatMoney(totals.expectedSettlementCents)}</strong>
+        </div>
+        <div className="trip-settle-split">
+          <div>
+            <span>Spese da rimborsare</span>
+            <strong>{formatMoney(totals.expenseReimbursementCents)}</strong>
+          </div>
+          <div>
+            <span>Extra guadagnato</span>
+            <strong>{formatMoney(totals.tripEarningsCents)}</strong>
+          </div>
         </div>
         <p>
           Segnare la trasferta come rimborsata non crea una seconda entrata e
-          non modifica lo stipendio.
+          non modifica lo stipendio. Solo le spese anticipate riducono il
+          reddito effettivo.
         </p>
       </div>
 
@@ -91,12 +121,37 @@ export function SettleTripSheet({
         </span>
       </label>
 
-      {linkedId ? (
-        <p className="inline-note">
-          <Icon name="info" size={15} />
-          Il collegamento serve solo come promemoria. Non cambia l’importo dello
-          stipendio né i totali del mese.
-        </p>
+      {selectedIncome ? (
+        <div className="settle-income-preview">
+          <p className="eyebrow">Anteprima reddito effettivo</p>
+          <dl>
+            <div>
+              <dt>Importo ricevuto</dt>
+              <dd>{formatMoney(selectedIncome.amountCents)}</dd>
+            </div>
+            <div>
+              <dt>
+                Spese da rimborsare
+                {existingLinked && existingLinked.trips.length > 0
+                  ? ` (${existingLinked.trips.length} ${
+                      existingLinked.trips.length === 1
+                        ? "trasferta già collegata"
+                        : "trasferte già collegate"
+                    } + questa)`
+                  : " (questa trasferta)"}
+              </dt>
+              <dd>−{formatMoney(previewExpenseReimbursement)}</dd>
+            </div>
+            <div className="settle-income-total">
+              <dt>Reddito effettivo</dt>
+              <dd>{formatMoney(previewEffectiveIncome)}</dd>
+            </div>
+          </dl>
+          <p>
+            Il movimento bancario resta {formatMoney(selectedIncome.amountCents)}.
+            Chilometri e indennità non vengono sottratti.
+          </p>
+        </div>
       ) : null}
 
       {error ? (

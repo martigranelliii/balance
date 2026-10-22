@@ -1,0 +1,332 @@
+/*
+ * Theme tokens. `classic` is the original palette and stays untouched for
+ * documents that do not have a theme preference. The three new palettes only
+ * override tokens and a few high-level surfaces, never component markup.
+ */
+:root {
+  --chart-line: var(--deep);
+  --theme-body-image:
+    radial-gradient(120% 90% at 100% -10%, rgba(169, 198, 220, 0.42), transparent 58%),
+    radial-gradient(85% 65% at -10% 30%, rgba(231, 198, 168, 0.11), transparent 55%),
+    linear-gradient(180deg, #f8f5ee 0%, #f5f2ea 55%, #f3f0e8 100%);
+  --theme-chrome: rgba(250, 247, 240, 0.9);
+  --theme-card-gradient:
+    radial-gradient(120% 110% at 100% 0%, rgba(169, 198, 220, 0.4), transparent 58%),
+    linear-gradient(150deg, rgba(253, 251, 245, 0.95), rgba(232, 240, 244, 0.72));
+  --theme-hero-bg:
+    radial-gradient(130% 100% at 100% 0%, rgba(126, 159, 190, 0.35), transparent 60%),
+    linear-gradient(150deg, #17324a 0%, #244864 100%);
+  --theme-hero-ink: #fbf8f1;
+  --theme-hero-muted: rgba(247, 244, 236, 0.58);
+  --theme-accent-soft: rgba(219, 232, 241, 0.85);
+}
+
+html[data-theme="sage"] {
+  --ivory: #eef1e8;
+  --paper: #f8f9f2;
+  --paper-deep: #e3e9db;
+  --ink: #26342b;
+  --navy: #304737;
+  --deep: #47624f;
+  --slate: #5d6e61;
+  --muted: #839185;
+  --line: rgba(38, 52, 43, 0.1);
+  --line-strong: rgba(38, 52, 43, 0.17);
+  --mist: #e4e9df;
+  --powder: #d9e3d2;
+  --sky: #a8bea2;
+  --cornflower: #7f9d81;
+  --peach: #d9c3a4;
+  --peach-soft: #efe7d8;
+  --sand: #7d6549;
+  --danger: #8f4f43;
+  --danger-soft: #f2e4df;
+  --theme-body-image:
+    radial-gradient(120% 90% at 100% -10%, rgba(168, 190, 162, 0.45), transparent 58%),
+    radial-gradient(85% 65% at -10% 30%, rgba(217, 195, 164, 0.16), transparent 55%),
+    linear-gradient(180deg, #f1f4ec 0%, #eaf0e4 55%, #e6ece0 100%);
+  --theme-chrome: rgba(248, 250, 243, 0.82);
+  --theme-card-gradient:
+    radial-gradient(120% 110% at 100% 0%, rgba(168, 190, 162, 0.48), transparent 58%),
+    linear-gradient(150deg, rgba(248, 249, 242, 0.97), rgba(231, 237, 226, 0.82));
+  --theme-hero-bg:
+    radial-gradient(130% 100% at 100% 0%, rgba(168, 190, 162, 0.28), transparent 60%),
+    linear-gradient(150deg, #293f32 0%, #415f49 100%);
+  --theme-hero-ink: #f7f8f0;
+  --theme-hero-muted: rgba(244, 247, 238, 0.62);
+  --theme-accent-soft: rgba(143, 168, 141, 0.2);
+}
+
+html[data-theme="rose"] {
+  --ivory: #f6ece9;
+  --paper: #fdf9f6;
+  --paper-deep: #f0e2de;
+  --ink: #3b2b31;
+  --navy: #543d46;
+  --deep: #7b5862;
+  --slate: #705c63;
+  --muted: #9a858c;
+  --line: rgba(59, 43, 49, 0.09);
+  --line-strong: rgba(59, 43, 49, 0.16);
+  --mist: #f1e4e1;
+  --powder: #ecd6d5;
+  --sky: #d9b3b5;
+  --cornflower: #bd8f96;
+  --peach: #e3c3ad;
+  --peach-soft: #f4e5dc;
+  --sand: #8a6754;
+  --danger: #9a4f47;
+  --danger-soft: #f5e1dc;
+  --theme-body-image:
+    radial-gradient(120% 90% at 100% -10%, rgba(217, 179, 181, 0.42), transparent 58%),
+    radial-gradient(85% 65% at -10% 30%, rgba(227, 195, 173, 0.16), transparent 55%),
+    linear-gradient(180deg, #f9f1ee 0%, #f5eae6 55%, #f1e4e0 100%);
+  --theme-chrome: rgba(253, 249, 246, 0.82);
+  --theme-card-gradient:
+    radial-gradient(120% 110% at 100% 0%, rgba(217, 179, 181, 0.4), transparent 58%),
+    linear-gradient(150deg, rgba(253, 249, 246, 0.97), rgba(244, 229, 225, 0.82));
+  --theme-hero-bg:
+    radial-gradient(130% 100% at 100% 0%, rgba(217, 179, 181, 0.25), transparent 60%),
+    linear-gradient(150deg, #4b343d 0%, #6f4d58 100%);
+  --theme-hero-ink: #fdf5f1;
+  --theme-hero-muted: rgba(253, 245, 241, 0.62);
+  --theme-accent-soft: rgba(201, 155, 156, 0.2);
+}
+
+html[data-theme="minimal"] {
+  --ivory: #f7f7f4;
+  --paper: #fdfdfb;
+  --paper-deep: #eeeeea;
+  --ink: #2f3333;
+  --navy: #343939;
+  --deep: #535a59;
+  --slate: #686e6d;
+  --muted: #909594;
+  --line: rgba(47, 51, 51, 0.09);
+  --line-strong: rgba(47, 51, 51, 0.16);
+  --mist: #eceeeb;
+  --powder: #e5e7e3;
+  --sky: #c3c7c3;
+  --cornflower: #929895;
+  --peach: #d7ccbe;
+  --peach-soft: #eee9e1;
+  --sand: #7b7064;
+  --danger: #8b544b;
+  --danger-soft: #f1e6e2;
+  --theme-body-image:
+    radial-gradient(120% 90% at 100% -10%, rgba(211, 214, 210, 0.4), transparent 58%),
+    radial-gradient(85% 65% at -10% 30%, rgba(215, 204, 190, 0.13), transparent 55%),
+    linear-gradient(180deg, #fafaf7 0%, #f6f6f2 55%, #f2f2ee 100%);
+  --theme-chrome: rgba(253, 253, 251, 0.84);
+  --theme-card-gradient:
+    radial-gradient(120% 110% at 100% 0%, rgba(211, 214, 210, 0.32), transparent 58%),
+    linear-gradient(150deg, rgba(253, 253, 251, 0.97), rgba(238, 238, 234, 0.82));
+  --theme-hero-bg:
+    radial-gradient(130% 100% at 100% 0%, rgba(195, 199, 195, 0.24), transparent 60%),
+    linear-gradient(150deg, #333838 0%, #4a5050 100%);
+  --theme-hero-ink: #fbfbf8;
+  --theme-hero-muted: rgba(251, 251, 248, 0.62);
+  --theme-accent-soft: rgba(120, 126, 124, 0.14);
+}
+
+html:not([data-theme="classic"]) body {
+  background-color: var(--ivory);
+  background-image: var(--theme-body-image);
+}
+
+html:not([data-theme="classic"]) .mobile-topbar,
+html:not([data-theme="classic"]) .bottom-nav,
+html:not([data-theme="classic"]) .sidebar {
+  border-color: var(--line);
+  background: var(--theme-chrome);
+}
+
+html:not([data-theme="classic"]) .mobile-topbar--minimal {
+  background: var(--theme-chrome);
+}
+
+html:not([data-theme="classic"]) .sidebar-nav-item:hover,
+html:not([data-theme="classic"]) .icon-button--quiet:hover,
+html:not([data-theme="classic"]) .account-row:hover {
+  background: color-mix(in srgb, var(--powder) 42%, transparent);
+}
+
+html:not([data-theme="classic"]) .sidebar-nav-item.is-active {
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+}
+
+html:not([data-theme="classic"]) .button--primary:hover {
+  border-color: color-mix(in srgb, var(--navy) 86%, #000);
+  background: color-mix(in srgb, var(--navy) 86%, #000);
+}
+
+html:not([data-theme="classic"]) .button--soft {
+  border-color: color-mix(in srgb, var(--deep) 14%, transparent);
+  background: var(--theme-accent-soft);
+  color: var(--deep);
+}
+
+html:not([data-theme="classic"]) .button--soft:hover {
+  background: var(--powder);
+}
+
+html:not([data-theme="classic"]) .button--ghost:hover {
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+}
+
+html:not([data-theme="classic"]) :is(
+  .panel,
+  .settings-card,
+  .trip-card,
+  .trip-month-group,
+  .manual-note,
+  .transaction-summary-strip,
+  .filter-panel,
+  .empty-state,
+  .linked-income-card,
+  .trend-empty,
+  .networth-chart-readout,
+  .settle-income-preview,
+  .personal-summary-card
+) {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--paper) 66%, transparent);
+}
+
+html:not([data-theme="classic"]) :is(
+  .welcome-panel,
+  .hero-card,
+  .hero-card--negative,
+  .budget-overview,
+  .insights-hero,
+  .privacy-card,
+  .trip-dashboard
+) {
+  border-color: var(--line);
+  background: var(--theme-card-gradient);
+}
+
+html:not([data-theme="classic"]) .networth-hero {
+  background: var(--theme-hero-bg);
+  color: var(--theme-hero-ink);
+}
+
+html:not([data-theme="classic"]) .networth-hero::after {
+  border-color: color-mix(in srgb, var(--theme-hero-ink) 12%, transparent);
+}
+
+html:not([data-theme="classic"]) .networth-hero .eyebrow,
+html:not([data-theme="classic"]) .networth-hero .networth-split-label,
+html:not([data-theme="classic"]) .networth-hero-note {
+  color: var(--theme-hero-muted);
+}
+
+html:not([data-theme="classic"]) .networth-total,
+html:not([data-theme="classic"]) .networth-splits strong {
+  color: var(--theme-hero-ink);
+}
+
+html:not([data-theme="classic"]) .networth-hero .snapshot-date {
+  color: var(--theme-hero-muted);
+  border-color: color-mix(in srgb, var(--theme-hero-ink) 15%, transparent);
+}
+
+html:not([data-theme="classic"]) .networth-hero .button--soft {
+  border-color: color-mix(in srgb, var(--theme-hero-ink) 18%, transparent);
+  background: color-mix(in srgb, var(--theme-hero-ink) 13%, transparent);
+  color: var(--theme-hero-ink);
+}
+
+html:not([data-theme="classic"]) .networth-hero .button--soft:hover {
+  background: color-mix(in srgb, var(--theme-hero-ink) 21%, transparent);
+}
+
+html:not([data-theme="classic"]) .progress-track {
+  background: color-mix(in srgb, var(--deep) 12%, transparent);
+}
+
+html:not([data-theme="classic"]) .category-icon--expense {
+  background: color-mix(in srgb, var(--powder) 72%, var(--paper));
+  color: var(--deep);
+}
+
+html:not([data-theme="classic"]) .category-icon--income {
+  background: var(--peach-soft);
+  color: var(--sand);
+}
+
+html:not([data-theme="classic"]) .category-icon--transfer,
+html:not([data-theme="classic"]) .category-icon--account {
+  background: color-mix(in srgb, var(--powder) 75%, transparent);
+  color: var(--deep);
+}
+
+/* Remaining tinted surfaces inherit the active palette instead of the
+   original blue/cream tints. */
+html:not([data-theme="classic"]) :is(
+  .welcome-step:hover,
+  .movement:hover,
+  .budget-row:hover,
+  .icon-button:hover,
+  .category-add-button:hover,
+  .category-choice:hover
+) {
+  background: color-mix(in srgb, var(--powder) 38%, transparent);
+}
+
+html:not([data-theme="classic"]) :is(
+  .historical-note,
+  .import-drop,
+  .import-row-hint,
+  .import-original p,
+  .insight-card--accent,
+  .personal-settle-summary,
+  .trip-expenses-details summary span,
+  .personal-settled summary span,
+  .import-preview tr.is-header-row td
+) {
+  background: color-mix(in srgb, var(--powder) 42%, transparent);
+}
+
+html:not([data-theme="classic"]) :is(
+  .category-choice.is-selected,
+  .account-type-choice.is-selected
+) {
+  background: var(--powder);
+}
+
+html:not([data-theme="classic"]) :is(
+  .month-nav,
+  .budget-foot,
+  .filter-toggle,
+  .import-entry,
+  .import-entry:hover,
+  .import-mode,
+  .import-review-summary > div,
+  .import-row,
+  .import-remember,
+  .settings-list-row,
+  .import-file,
+  .import-options > div,
+  .trip-count,
+  .trip-expense-row,
+  .trip-form-summary,
+  .personal-person,
+  .home-personal,
+  .insight-assets
+) {
+  background: color-mix(in srgb, var(--paper) 58%, transparent);
+}
+
+html:not([data-theme="classic"]) :is(
+  .trip-card--reimbursed,
+  .trip-status--done,
+  .trip-km-panel,
+  .personal-person-head
+) {
+  background: color-mix(in srgb, var(--powder) 36%, transparent);
+}
+
+html:not([data-theme="classic"]) .sheet-grabber {
+  background: var(--line-strong);
+}

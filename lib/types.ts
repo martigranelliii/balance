@@ -6,6 +6,12 @@ export type TransactionType = "income" | "expense" | "transfer";
 export type Reflection = "yes" | "neutral" | "no";
 export type TransactionSource = "manual" | "bank-import";
 
+/**
+ * `classic` is the original Balance palette. It is the safe fallback for
+ * documents created before themes existed and remains valid in storage.
+ */
+export type ThemeName = "classic" | "sage" | "rose" | "minimal";
+
 export interface Transaction {
   id: string;
   /** Local calendar date, YYYY-MM-DD. Never a UTC timestamp. */
@@ -200,6 +206,8 @@ export interface Settings {
   reflectionEnabled: boolean;
   /** Default business-trip rate in millesimi di euro per km (488 = €0,488). */
   defaultRatePerKmMills: number;
+  /** Additive UI preference. Missing values load as the original palette. */
+  theme: ThemeName;
 }
 
 export interface BalanceData {
@@ -257,6 +265,10 @@ export interface NetWorthTotals {
   totalCents: number;
   liquidCents: number;
   investmentsCents: number;
+  /** Sum of positive included balances. */
+  assetsCents: number;
+  /** Absolute value of negative included balances. */
+  liabilitiesCents: number;
   includedAccounts: Account[];
   hasIncludedAccounts: boolean;
 }

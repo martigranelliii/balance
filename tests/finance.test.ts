@@ -10,6 +10,7 @@ import {
   calculateNetWorth,
   getMonthSummary,
   savingsRate,
+  snapshotSeries,
   summarizeTransactions,
 } from "../lib/finance";
 import {
@@ -25,6 +26,13 @@ import {
   monthKeyFromDate,
   toISODate,
 } from "../lib/dates";
+import { createEmptyData } from "../lib/storage";
+import {
+  captureSnapshot,
+  getSnapshot,
+  replaceAllData,
+  updateSettings,
+} from "../lib/store";
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return {
@@ -50,6 +58,10 @@ function account(overrides: Partial<Account>): Account {
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
+}
+
+function getSnapshotSnapshots() {
+  return getSnapshot().data.netWorthSnapshots;
 }
 
 const historical: HistoricalMonthlySummary = {
@@ -248,10 +260,90 @@ describe("net worth and savings rate", () => {
     expect(totals.hasIncludedAccounts).toBe(true);
   });
 
+  it("splits positive assets from negative liabilities", () => {
+    const totals = calculateNetWorth([
+      account({ id: "bank", currentBalanceCents: 50000 }),
+      account({ id: "card", currentBalanceCents: -12500 }),
+      account({ id: "inv", type: "investment", currentBalanceCents: 100000 }),
+    ]);
+    expect(totals.assetsCents).toBe(150000);
+    expect(totals.liabilitiesCents).toBe(12500);
+    expect(totals.totalCents).toBe(137500);
+  });
+
+  it("keeps one deterministic point per snapshot day without deleting records", () => {
+    const snapshots = [
+      {
+        id: "s1",
+        date: "2026-10-20",
+        totalCents: 100000,
+        liquidCents: 100000,
+        investmentsCents: 0,
+        accounts: [],
+        createdAt: "2026-10-20T08:00:00.000Z",
+      },
+      {
+        id: "s2",
+        date: "2026-10-20",
+        totalCents: 110000,
+        liquidCents: 110000,
+        investmentsCents: 0,
+        accounts: [],
+        createdAt: "2026-10-20T18:00:00.000Z",
+      },
+      {
+        id: "s3",
+        date: "2026-10-21",
+        totalCents: 120000,
+        liquidCents: 120000,
+        investmentsCents: 0,
+        accounts: [],
+        createdAt: "2026-10-21T08:00:00.000Z",
+      },
+    ];
+    const series = snapshotSeries(snapshots);
+    expect(series).toHaveLength(2);
+    expect(series[0].id).toBe("s2");
+    expect(series[1].id).toBe("s3");
+    expect(snapshots).toHaveLength(3);
+  });
+
   it("handles the empty net-worth state", () => {
     const totals = calculateNetWorth([]);
     expect(totals.totalCents).toBe(0);
     expect(totals.hasIncludedAccounts).toBe(false);
+  });
+
+  it("does not create history without accounts and deduplicates today's snapshot", () => {
+    replaceAllData(createEmptyData());
+    expect(captureSnapshot()).toBe(false);
+    expect(getSnapshotSnapshots()).toHaveLength(0);
+
+    replaceAllData({
+      ...createEmptyData(),
+      accounts: [
+        account({ id: "bank", currentBalanceCents: 50000 }),
+        account({ id: "card", currentBalanceCents: -12500 }),
+      ],
+    });
+    expect(captureSnapshot()).toBe(true);
+    expect(captureSnapshot()).toBe(false);
+
+    const snapshots = getSnapshotSnapshots();
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0].totalCents).toBe(37500);
+    expect(snapshots[0].accounts).toHaveLength(2);
+    expect(snapshots[0].accounts.map((item) => item.accountId)).toEqual([
+      "bank",
+      "card",
+    ]);
+  });
+
+  it("keeps the chosen theme in the persisted settings", () => {
+    replaceAllData(createEmptyData());
+    updateSettings({ theme: "sage" });
+    expect(getSnapshot().data.settings.theme).toBe("sage");
+    expect(getSnapshot().data.settings.currency).toBe("EUR");
   });
 
   it("calculates savings rate only when income exists", () => {

@@ -71,9 +71,25 @@ describe("default categories and legacy migration", () => {
       "vestiti",
       "viaggi",
       "benzina",
+      "salute",
       "estetista",
       "altro-spesa",
     ]);
+  });
+
+  it("offers Salute for expenses and recognises common health merchants", () => {
+    const catalog = createCategoryCatalog(createEmptyData());
+    expect(
+      categoriesForType("expense", catalog).some(
+        (category) => category.id === "salute",
+      ),
+    ).toBe(true);
+    expect(suggestCategory("expense", "FARMACIA CENTRALE").category).toBe(
+      "salute",
+    );
+    expect(suggestCategory("expense", "VISITA DENTISTA").category).toBe(
+      "salute",
+    );
   });
 
   it("loads old balance.v1 data with all defaults active and no category prefs", () => {

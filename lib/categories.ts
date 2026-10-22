@@ -11,6 +11,7 @@ export type IconName =
   | "clothing"
   | "travel"
   | "fuel"
+  | "health"
   | "beauty"
   | "dots"
   | "salary"
@@ -93,6 +94,7 @@ export const CATEGORIES: CategoryDefinition[] = [
   { id: "vestiti", label: "Vestiti", kind: "expense", icon: "clothing" },
   { id: "viaggi", label: "Viaggi", kind: "expense", icon: "travel" },
   { id: "benzina", label: "Benzina", kind: "expense", icon: "fuel" },
+  { id: "salute", label: "Salute", kind: "expense", icon: "health" },
   { id: "estetista", label: "Estetista", kind: "expense", icon: "beauty" },
   { id: "altro-spesa", label: "Altro", kind: "expense", icon: "dots" },
 ];

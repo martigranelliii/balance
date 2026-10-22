@@ -56,7 +56,10 @@ const DEFAULT_SETTINGS: Settings = {
   locale: "it-IT",
   reflectionEnabled: true,
   defaultRatePerKmMills: 0,
+  theme: "classic",
 };
+
+const THEMES: Settings["theme"][] = ["classic", "sage", "rose", "minimal"];
 
 export function createEmptyData(): BalanceData {
   return {
@@ -523,6 +526,9 @@ function normalizeSettings(value: unknown): Settings {
       value.defaultRatePerKmMills >= 0
         ? value.defaultRatePerKmMills
         : 0,
+    theme: THEMES.includes(value.theme as Settings["theme"])
+      ? (value.theme as Settings["theme"])
+      : "classic",
   };
 }
 

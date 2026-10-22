@@ -7,6 +7,7 @@ import {
   formatKilometers,
   formatRatePerKm,
   groupOpenTripsBySettlementMonth,
+  linkedTripIncome,
   openBusinessTrips,
   reimbursedBusinessTrips,
   summarizeBusinessTrips,
@@ -82,9 +83,9 @@ function TripCard({
       </header>
 
       <dl className="trip-breakdown">
-        <div>
-          <dt>Spese sostenute</dt>
-          <dd>{formatMoney(totals.expensesCents)}</dd>
+        <div className="trip-breakdown-reimbursement">
+          <dt>Spese da rimborsare</dt>
+          <dd>{formatMoney(totals.expenseReimbursementCents)}</dd>
         </div>
         {totals.kmReimbursementCents > 0 ? (
           <div>
@@ -101,9 +102,13 @@ function TripCard({
             <dd>{formatMoney(totals.allowanceCents)}</dd>
           </div>
         ) : null}
+        <div className="trip-breakdown-earnings">
+          <dt>Extra guadagnato</dt>
+          <dd>{formatMoney(totals.tripEarningsCents)}</dd>
+        </div>
         <div className="trip-breakdown-total">
           <dt>Totale atteso</dt>
-          <dd>{formatMoney(totals.totalCents)}</dd>
+          <dd>{formatMoney(totals.expectedSettlementCents)}</dd>
         </div>
       </dl>
 
@@ -118,6 +123,7 @@ function TripCard({
           : `Prevista nello stipendio di ${capitalize(
               monthLabel(trip.expectedSettlementMonth ?? ""),
             )}.`}
+        {" "}Le spese sono un rimborso; km e indennità sono guadagno reale.
       </p>
 
       {trip.expenses.length > 0 ? (
@@ -189,6 +195,10 @@ export function TripsScreen({
   const open = openBusinessTrips(data.businessTrips);
   const reimbursed = reimbursedBusinessTrips(data.businessTrips);
   const monthGroups = groupOpenTripsBySettlementMonth(data.businessTrips);
+  const linkedIncomes = linkedTripIncome(
+    data.transactions,
+    data.businessTrips,
+  );
 
   return (
     <div className="screen screen--trips">
@@ -208,8 +218,8 @@ export function TripsScreen({
       </header>
 
       <p className="screen-lede">
-        Spese anticipate, chilometri e indennità da recuperare. Restano fuori
-        dai movimenti del conto.
+        Le spese anticipate vengono rimborsate. Chilometri e indennità sono
+        extra guadagnati. Tutto resta fuori dai movimenti del conto.
       </p>
 
       {data.businessTrips.length === 0 ? (
@@ -232,9 +242,9 @@ export function TripsScreen({
         <>
           <section className="trip-dashboard" aria-labelledby="trip-total-title">
             <div className="trip-dashboard-main">
-              <p className="eyebrow">Da recuperare</p>
+              <p className="eyebrow">Totale atteso</p>
               <h2 id="trip-total-title" className="trip-dashboard-total">
-                {formatMoney(summary.totalCents)}
+                {formatMoney(summary.expectedSettlementCents)}
               </h2>
               <p className="trip-dashboard-caption">
                 {summary.openCount === 0
@@ -248,16 +258,16 @@ export function TripsScreen({
             </div>
             <div className="trip-dashboard-grid">
               <div>
-                <span>Spese anticipate</span>
-                <strong>{formatMoney(summary.expensesCents)}</strong>
+                <span>Spese da rimborsare</span>
+                <strong>{formatMoney(summary.expenseReimbursementCents)}</strong>
               </div>
               <div>
-                <span>Km da rimborsare</span>
-                <strong>{formatMoney(summary.kmReimbursementCents)}</strong>
+                <span>Extra guadagnato</span>
+                <strong>{formatMoney(summary.tripEarningsCents)}</strong>
               </div>
               <div>
-                <span>Indennità da ricevere</span>
-                <strong>{formatMoney(summary.allowanceCents)}</strong>
+                <span>Totale atteso</span>
+                <strong>{formatMoney(summary.expectedSettlementCents)}</strong>
               </div>
             </div>
           </section>
@@ -281,20 +291,22 @@ export function TripsScreen({
                       </p>
                       <h3>{capitalize(monthLabel(group.month))}</h3>
                     </div>
-                    <strong>{formatMoney(group.totalCents)}</strong>
+                    <strong>
+                      {formatMoney(group.expectedSettlementCents)}
+                    </strong>
                   </div>
                   <dl className="trip-month-breakdown">
                     <div>
-                      <dt>Spese</dt>
-                      <dd>{formatMoney(group.expensesCents)}</dd>
+                      <dt>Spese da rimborsare</dt>
+                      <dd>{formatMoney(group.expenseReimbursementCents)}</dd>
                     </div>
                     <div>
-                      <dt>Km</dt>
-                      <dd>{formatMoney(group.kmReimbursementCents)}</dd>
+                      <dt>Extra guadagnato</dt>
+                      <dd>{formatMoney(group.tripEarningsCents)}</dd>
                     </div>
                     <div>
-                      <dt>Indennità</dt>
-                      <dd>{formatMoney(group.allowanceCents)}</dd>
+                      <dt>Totale atteso</dt>
+                      <dd>{formatMoney(group.expectedSettlementCents)}</dd>
                     </div>
                   </dl>
                   <div className="trip-card-list">
@@ -338,6 +350,72 @@ export function TripsScreen({
             </section>
           ) : null}
 
+          {linkedIncomes.length > 0 ? (
+            <section
+              className="trip-section linked-income-section"
+              aria-labelledby="linked-income-title"
+            >
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Stipendi e rimborsi</p>
+                  <h2 id="linked-income-title">Reddito effettivo</h2>
+                </div>
+                <span className="trip-count">{linkedIncomes.length}</span>
+              </div>
+              <p className="linked-income-lede">
+                Il movimento bancario non cambia. Qui vedi quanto resta come
+                reddito dopo aver tolto le sole spese anticipate rimborsate.
+              </p>
+              <div className="linked-income-list">
+                {linkedIncomes.map((income) => (
+                  <article className="linked-income-card" key={income.transaction.id}>
+                    <header className="linked-income-head">
+                      <div>
+                        <strong>
+                          {income.transaction.description || "Entrata"}
+                        </strong>
+                        <span>
+                          {formatShortDate(income.transaction.date, true)}
+                          {" · "}
+                          {income.trips.length}{" "}
+                          {income.trips.length === 1
+                            ? "trasferta collegata"
+                            : "trasferte collegate"}
+                        </span>
+                      </div>
+                      <span className="linked-income-bank">
+                        {formatMoney(income.receivedCents)}
+                      </span>
+                    </header>
+                    <dl className="linked-income-breakdown">
+                      <div>
+                        <dt>Importo sul conto</dt>
+                        <dd>{formatMoney(income.receivedCents)}</dd>
+                      </div>
+                      <div>
+                        <dt>Spese da rimborsare</dt>
+                        <dd>−{formatMoney(income.expenseReimbursementCents)}</dd>
+                      </div>
+                      <div className="linked-income-extra">
+                        <dt>Extra guadagnato (non sottratto)</dt>
+                        <dd>{formatMoney(income.tripEarningsCents)}</dd>
+                      </div>
+                      <div className="linked-income-total">
+                        <dt>Reddito effettivo</dt>
+                        <dd>{formatMoney(income.effectiveIncomeCents)}</dd>
+                      </div>
+                    </dl>
+                    <p className="linked-income-note">
+                      I chilometri e l’indennità restano guadagno reale. Il
+                      movimento originale vale sempre{" "}
+                      {formatMoney(income.receivedCents)}.
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <div className="manual-note trip-note">
             <span className="manual-note-icon">
               <Icon name="briefcase" size={18} />
@@ -346,8 +424,9 @@ export function TripsScreen({
               <strong>Un promemoria, non un movimento</strong>
               <p>
                 Le trasferte non aumentano le spese bancarie. Quando lo stipendio
-                arriva, lo registri come sempre: qui puoi solo segnare la
-                trasferta come rimborsata.
+                arriva, lo registri come sempre: qui puoi segnare la trasferta
+                come rimborsata e vedere il reddito effettivo, senza toccare
+                l’importo bancario.
               </p>
             </div>
           </div>
