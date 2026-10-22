@@ -1,0 +1,1050 @@
+/* Trasferte e voci personali */
+.text-link--danger {
+  color: var(--danger);
+}
+
+.text-link--danger:hover {
+  color: var(--danger);
+}
+
+.input-with-icon--money > span:first-child {
+  position: absolute;
+  left: 13px;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.input-with-icon--money .text-input {
+  padding-left: 29px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-dashboard {
+  margin-bottom: 22px;
+  padding: 22px;
+  border: 1px solid rgba(44, 74, 104, 0.13);
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(169, 198, 220, 0.42), transparent 58%),
+    linear-gradient(155deg, rgba(253, 251, 245, 0.97), rgba(235, 242, 246, 0.84));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    var(--shadow-soft);
+}
+
+.trip-dashboard-total {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-dashboard-caption {
+  margin-top: 4px;
+  color: var(--slate);
+  font-size: 11px;
+}
+
+.trip-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 19px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(44, 74, 104, 0.12);
+}
+
+.trip-dashboard-grid > div {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.trip-dashboard-grid > div:first-child {
+  padding-left: 0;
+}
+
+.trip-dashboard-grid > div + div {
+  border-left: 1px solid rgba(44, 74, 104, 0.11);
+}
+
+.trip-dashboard-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.trip-dashboard-grid strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-section {
+  margin-bottom: 28px;
+}
+
+.trip-count {
+  display: inline-grid;
+  min-width: 27px;
+  height: 27px;
+  padding: 0 8px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(253, 251, 245, 0.6);
+  color: var(--slate);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.trip-month-group {
+  margin-top: 13px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(253, 251, 245, 0.48);
+}
+
+.trip-month-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trip-month-head h3 {
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.03;
+  letter-spacing: -0.03em;
+}
+
+.trip-month-head > strong {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-month-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.trip-month-breakdown > div + div {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.trip-month-breakdown dt {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.trip-month-breakdown dd {
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.trip-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+  background: rgba(253, 251, 245, 0.72);
+}
+
+.trip-card--reimbursed {
+  background: rgba(232, 237, 240, 0.32);
+}
+
+.trip-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trip-card-heading {
+  min-width: 0;
+}
+
+.trip-card-date {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.trip-card-heading h3 {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.trip-status {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid rgba(44, 74, 104, 0.14);
+  border-radius: 999px;
+  background: var(--powder);
+  color: var(--deep);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.trip-status--done {
+  border-color: rgba(44, 74, 104, 0.1);
+  background: rgba(232, 237, 240, 0.75);
+  color: var(--slate);
+}
+
+.trip-breakdown {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.trip-breakdown > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.trip-breakdown dt {
+  min-width: 0;
+  color: var(--slate);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.trip-breakdown dd {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-breakdown-total {
+  margin-top: 5px;
+  padding-top: 7px !important;
+  border-top: 1px solid var(--line);
+}
+
+.trip-breakdown-total dt {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trip-breakdown-total dd {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.trip-card-footnote {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+
+.trip-expenses-details {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.trip-expenses-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  color: var(--deep);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+  list-style: none;
+}
+
+.trip-expenses-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-expenses-details summary::before {
+  content: "+";
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--powder);
+  font-size: 11px;
+}
+
+.trip-expenses-details[open] summary::before {
+  content: "−";
+}
+
+.trip-expenses-details summary span {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(219, 232, 241, 0.55);
+  font-size: 8.5px;
+}
+
+.trip-expenses-details ul {
+  padding-bottom: 5px;
+}
+
+.trip-expenses-details li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  color: var(--slate);
+  font-size: 10px;
+}
+
+.trip-expenses-details li strong {
+  flex-shrink: 0;
+  color: var(--ink);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-card-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.trip-card-actions .button {
+  margin-left: auto;
+}
+
+.trip-note {
+  margin-top: 4px;
+}
+
+.trip-mobile-add {
+  width: 100%;
+  margin-top: 18px;
+}
+
+/* Form trasferta */
+.trip-expense-fieldset {
+  min-width: 0;
+  margin-bottom: 17px;
+}
+
+.trip-fieldset-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.trip-fieldset-head .field-label {
+  margin: 0;
+}
+
+.trip-fieldset-total {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trip-expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trip-expense-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(253, 251, 245, 0.5);
+}
+
+.trip-expense-row .field-label {
+  font-size: 8px;
+}
+
+.trip-expense-row .text-input,
+.trip-expense-row .select-input {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+.trip-expense-description {
+  grid-column: 1 / -1;
+}
+
+.trip-expense-remove {
+  align-self: end;
+  margin-bottom: 1px;
+}
+
+.trip-empty-expenses {
+  padding: 12px;
+  border: 1px dashed rgba(44, 74, 104, 0.2);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.trip-km-panel {
+  margin-bottom: 17px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(232, 237, 240, 0.3);
+}
+
+.trip-km-panel .form-grid {
+  margin-bottom: 0;
+}
+
+.trip-km-note {
+  margin-top: 8px;
+  color: var(--slate);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.trip-allowance-field {
+  margin-bottom: 8px;
+}
+
+.trip-form-summary {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(253, 251, 245, 0.55);
+}
+
+.trip-form-summary > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.trip-form-summary span {
+  color: var(--slate);
+  font-size: 10.5px;
+}
+
+.trip-form-summary strong {
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-form-summary-total {
+  margin-top: 5px;
+  padding-top: 7px !important;
+  border-top: 1px solid var(--line);
+}
+
+.trip-form-summary-total span {
+  color: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.trip-form-summary-total strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.trip-settle-summary,
+.personal-settle-summary {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(219, 232, 241, 0.3);
+}
+
+.trip-settle-summary > div,
+.personal-settle-summary > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trip-settle-summary span,
+.personal-settle-summary span {
+  color: var(--slate);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.trip-settle-summary strong,
+.personal-settle-summary strong {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.trip-settle-summary p,
+.personal-settle-summary p {
+  margin-top: 7px;
+  color: var(--slate);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.settle-actions {
+  flex-wrap: wrap;
+}
+
+.settle-actions .button {
+  white-space: normal;
+}
+
+/* Voci personali in Patrimonio */
+.personal-section {
+  margin: 28px 0;
+  padding-top: 2px;
+}
+
+.personal-summary-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.personal-summary-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+}
+
+.personal-summary-card--in {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(219, 232, 241, 0.8), transparent 70%),
+    rgba(253, 251, 245, 0.58);
+}
+
+.personal-summary-card--out {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(231, 198, 168, 0.26), transparent 70%),
+    rgba(253, 251, 245, 0.58);
+}
+
+.personal-summary-card > span {
+  display: block;
+  color: var(--muted);
+  font-size: 8.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.personal-summary-card > strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.personal-summary-card > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.personal-empty {
+  padding: 13px;
+  border: 1px dashed rgba(44, 74, 104, 0.2);
+  border-radius: 15px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.personal-direction {
+  margin-top: 16px;
+}
+
+.personal-direction-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+
+.personal-direction-head h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.personal-direction-head span {
+  color: var(--muted);
+  font-size: 9px;
+  text-align: right;
+}
+
+.personal-person {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(253, 251, 245, 0.52);
+  overflow: hidden;
+}
+
+.personal-person-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 7px;
+  background: rgba(232, 237, 240, 0.36);
+}
+
+.personal-person-head strong {
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.personal-person-head span {
+  color: var(--muted);
+  font-size: 8.5px;
+  text-align: right;
+}
+
+.personal-row {
+  padding: 9px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.personal-row-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.personal-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.personal-row-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.personal-row-copy span {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.personal-row-amount {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.personal-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  margin-top: 2px;
+}
+
+.personal-row-actions .text-link {
+  min-height: 32px;
+  font-size: 9.5px;
+}
+
+.personal-settled {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.personal-settled summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  color: var(--deep);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 650;
+  list-style: none;
+}
+
+.personal-settled summary::-webkit-details-marker {
+  display: none;
+}
+
+.personal-settled summary::before {
+  content: "+";
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--powder);
+  font-size: 11px;
+}
+
+.personal-settled[open] summary::before {
+  content: "−";
+}
+
+.personal-settled summary span {
+  display: inline-grid;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(219, 232, 241, 0.55);
+  font-size: 8.5px;
+}
+
+.personal-settled-list {
+  border-top: 1px solid var(--line);
+}
+
+.personal-settled-list .personal-row:first-child {
+  border-top: 0;
+}
+
+.personal-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+
+.personal-note svg {
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+/* Riepilogo Home */
+.home-personal {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(253, 251, 245, 0.52);
+}
+
+.home-personal-head h2 {
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.home-personal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.home-personal-grid button {
+  min-width: 0;
+  padding: 0 9px;
+  text-align: left;
+}
+
+.home-personal-grid button:first-child {
+  padding-left: 0;
+}
+
+.home-personal-grid button + button {
+  border-left: 1px solid var(--line);
+}
+
+.home-personal-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.home-personal-grid strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-personal-grid button:hover strong {
+  color: var(--deep);
+}
+
+/* Insights separati */
+.insight-assets {
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(253, 251, 245, 0.55);
+}
+
+.insight-assets ul {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.insight-assets li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.insight-assets li span {
+  color: var(--slate);
+  font-size: 11px;
+}
+
+.insight-assets li strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.insight-assets-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+
+.insight-assets-note svg {
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+/* Tariffa nelle impostazioni */
+.settings-rate-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.settings-rate-row .field {
+  flex: 1;
+  max-width: 230px;
+}
+
+.settings-rate-row .button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 430px) {
+  .bottom-nav-item {
+    font-size: 8.5px;
+  }
+
+  .trip-dashboard {
+    padding: 19px;
+  }
+
+  .trip-dashboard-total {
+    font-size: 43px;
+  }
+
+  .trip-dashboard-grid > div {
+    padding: 0 7px;
+  }
+
+  .trip-dashboard-grid strong {
+    font-size: 11.5px;
+  }
+
+  .trip-expense-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.88fr) auto;
+    padding: 9px;
+    gap: 6px;
+  }
+
+  .home-personal-grid button {
+    padding: 0 6px;
+  }
+
+  .home-personal-grid span {
+    font-size: 7.5px;
+  }
+
+  .home-personal-grid strong {
+    font-size: 10.5px;
+  }
+
+  .personal-summary-card {
+    padding: 13px;
+  }
+
+  .personal-summary-card > strong {
+    font-size: 25px;
+  }
+
+  .personal-direction-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .personal-direction-head span {
+    text-align: left;
+  }
+
+  .settings-rate-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settings-rate-row .field {
+    max-width: none;
+  }
+}
+
+@media (min-width: 720px) {
+  .trip-dashboard-total {
+    font-size: 54px;
+  }
+
+  .trip-dashboard-grid span {
+    font-size: 9px;
+  }
+
+  .trip-dashboard-grid strong {
+    font-size: 14px;
+  }
+
+  .trip-card {
+    padding: 17px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .screen--trips {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .trip-mobile-add {
+    display: none;
+  }
+
+  .trip-dashboard {
+    padding: 25px;
+  }
+
+  .trip-dashboard-total {
+    font-size: 58px;
+  }
+
+  .personal-summary-card > strong {
+    font-size: 32px;
+  }
+}

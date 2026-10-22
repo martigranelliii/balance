@@ -32,6 +32,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
+
+# local financial data and backups
+/backups/
+/backup/
+*.backup.json
+balance-backup-*.json
+*.csv
+*.xlsx
+*.xls
 
 # vercel
 .vercel
