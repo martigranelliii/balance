@@ -82,11 +82,14 @@ export function SettingsScreen({
   const [rateError, setRateError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
-    setIsIOS(
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-        !("MSStream" in window),
-    );
+    const timer = window.setTimeout(() => {
+      setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+      setIsIOS(
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+          !("MSStream" in window),
+      );
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const recoveryRaw =
@@ -511,7 +514,7 @@ export function SettingsScreen({
             </ul>
           )}
           <p className="settings-note">
-            Ogni riga resta tracciata con il file da cui proviene. Non c'è un
+            Ogni riga resta tracciata con il file da cui proviene. Non c’è un
             annullamento automatico: puoi eliminare i singoli movimenti da
             Movimenti.
           </p>

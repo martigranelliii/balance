@@ -14,6 +14,7 @@ import { MonthNav } from "../ui/MonthNav";
 import { Icon } from "../ui/Icon";
 import { RateRing } from "../ui/RateRing";
 import { EmptyState } from "../ui/EmptyState";
+import { AnnualCategoryExpenses } from "../ui/AnnualCategoryExpenses";
 import { AnnualSavings } from "../ui/AnnualSavings";
 
 interface InsightsScreenProps {
@@ -170,6 +171,8 @@ export function InsightsScreen({
           </p>
         </>
       )}
+
+      <AnnualCategoryExpenses data={data} />
 
       <AnnualSavings summary={annual} />
 

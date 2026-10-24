@@ -431,6 +431,8 @@ describe("annual summaries", () => {
     expect(annual.incomeCents).toBe(350000);
     expect(annual.expenseCents).toBe(140000);
     expect(annual.savingsCents).toBe(210000);
+    expect(annual.incomeByCategory).toEqual({ stipendio: 350000 });
+    expect(annual.expenseByCategory).toEqual({ cibo: 140000 });
     expect(annual.monthsWithData).toEqual(["2026-01", "2026-02"]);
   });
 
@@ -462,6 +464,8 @@ describe("annual summaries", () => {
     expect(annual.incomeCents).toBe(250000);
     expect(annual.expenseCents).toBe(70000);
     expect(annual.savingsCents).toBe(180000);
+    expect(annual.incomeByCategory).toEqual({ stipendio: 250000 });
+    expect(annual.expenseByCategory).toEqual({ cibo: 70000 });
     expect(annual.monthsWithData).toEqual(["2026-01", "2026-09"]);
   });
 
@@ -471,6 +475,8 @@ describe("annual summaries", () => {
       incomeCents: 0,
       expenseCents: 0,
       savingsCents: 0,
+      incomeByCategory: {},
+      expenseByCategory: {},
       monthsWithData: [],
     });
   });

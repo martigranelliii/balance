@@ -147,6 +147,8 @@ export interface YearSummary {
   incomeCents: number;
   expenseCents: number;
   savingsCents: number;
+  incomeByCategory: Record<string, number>;
+  expenseByCategory: Record<string, number>;
   monthsWithData: string[];
 }
 
@@ -167,12 +169,26 @@ export function summarizeYear(
   const withData = months
     .map((month) => getMonthSummary(month, transactions, historicalSummaries))
     .filter((summary) => summary.source !== "empty");
+  const incomeByCategory: Record<string, number> = {};
+  const expenseByCategory: Record<string, number> = {};
+
+  for (const summary of withData) {
+    for (const [categoryId, cents] of Object.entries(summary.incomeByCategory)) {
+      incomeByCategory[categoryId] = (incomeByCategory[categoryId] ?? 0) + cents;
+    }
+    for (const [categoryId, cents] of Object.entries(summary.expenseByCategory)) {
+      expenseByCategory[categoryId] =
+        (expenseByCategory[categoryId] ?? 0) + cents;
+    }
+  }
 
   return {
     year,
     incomeCents: sumCents(withData.map((summary) => summary.incomeCents)),
     expenseCents: sumCents(withData.map((summary) => summary.expenseCents)),
     savingsCents: sumCents(withData.map((summary) => summary.savingsCents)),
+    incomeByCategory,
+    expenseByCategory,
     monthsWithData: withData.map((summary) => summary.month),
   };
 }

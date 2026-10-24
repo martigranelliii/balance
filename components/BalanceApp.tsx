@@ -134,7 +134,8 @@ export function BalanceApp() {
 
   useEffect(() => {
     initializeStore();
-    setMonth(currentMonthKey());
+    const timer = window.setTimeout(() => setMonth(currentMonthKey()), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

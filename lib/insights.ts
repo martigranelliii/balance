@@ -21,7 +21,7 @@ import {
   getCategoryLabel,
   type CategoryCatalog,
 } from "./categories";
-import { formatMoney, formatPercent, sumCents } from "./money";
+import { formatMoney, formatPercent, ratio, sumCents } from "./money";
 import {
   formatShortDate,
   monthName,
@@ -43,6 +43,35 @@ export interface InsightsResult {
   savingsRate: number | null;
   cards: InsightCard[];
   hasData: boolean;
+}
+
+export interface CategoryTotal {
+  categoryId: string;
+  cents: number;
+  share: number;
+}
+
+/**
+ * Turns a category -> cents map into a sorted breakdown. The optional total
+ * keeps shares aligned with the displayed income/expense total even when a
+ * stored map is incomplete.
+ */
+export function categoryTotals(
+  totals: Record<string, number>,
+  totalCents = sumCents(Object.values(totals)),
+): CategoryTotal[] {
+  const total = totalCents > 0 ? totalCents : sumCents(Object.values(totals));
+  return Object.entries(totals)
+    .filter(([, cents]) => cents > 0)
+    .map(([categoryId, cents]) => ({
+      categoryId,
+      cents,
+      share: ratio(cents, total),
+    }))
+    .sort(
+      (a, b) =>
+        b.cents - a.cents || a.categoryId.localeCompare(b.categoryId),
+    );
 }
 
 interface InsightsInput {
@@ -77,7 +106,6 @@ export function buildInsights(input: InsightsInput): InsightsResult {
     transactions,
     historicalSummaries,
     budgets,
-    accounts,
     snapshots,
     categoryCatalog,
   } = input;
@@ -276,4 +304,28 @@ export function latestSnapshotInfo(snapshots: NetWorthSnapshot[]) {
   return snapshot
     ? `Ultima fotografia: ${formatShortDate(snapshot.date, true)}`
     : null;
+}
+
+/** Years come from actual recorded movements, independently of month navigation. */
+export function transactionYears(transactions: Transaction[]): string[] {
+  return [...new Set(transactions.map((item) => item.date.slice(0, 4)))].sort().reverse();
+}
+
+export function resolveInsightYear(years: string[], selected?: string, current = String(new Date().getFullYear())): string {
+  if (selected && years.includes(selected)) return selected;
+  return years.includes(current) ? current : (years[0] ?? current);
+}
+
+export function annualCategoryDetail(year: string, categoryId: string, transactions: Transaction[], historical: HistoricalMonthlySummary[]) {
+  const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`)
+    .map((month) => getMonthSummary(month, transactions, historical));
+  const items = transactions.filter((item) => item.date.startsWith(`${year}-`) && item.type === "expense" && (item.category ?? "altro-spesa") === categoryId);
+  const cents = sumCents(months.map((month) => month.expenseByCategory[categoryId] ?? 0));
+  return {
+    cents,
+    averageCents: Math.round(cents / 12),
+    transactions: [...items].sort((a, b) => b.date.localeCompare(a.date)),
+    historicalMonths: months.filter((month) => month.source === "historical" && (month.expenseByCategory[categoryId] ?? 0) > 0).length,
+    months: months.map((month) => ({ month: month.month, cents: month.expenseByCategory[categoryId] ?? 0 })).filter((month) => month.cents > 0).sort((a, b) => b.cents - a.cents || a.month.localeCompare(b.month)),
+  };
 }
