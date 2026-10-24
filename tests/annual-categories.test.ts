@@ -48,3 +48,28 @@ describe("annual expense categories", () => {
     expect(detail.cents).toBe(summarizeYear("2026", items, history).expenseByCategory.vestiti);
   });
 });
+
+describe("annual income categories", () => {
+  it("excludes expenses and transfers, filters the year, and preserves income categories and refunds", () => {
+    const income = [...items, transaction("salary", "2026-12-31", "income", 100000, "stipendio"), transaction("old", "2025-01-01", "income", 50000, "stipendio"), transaction("other", "2026-06-01", "income", 1200, null)];
+    const summary = summarizeYear("2026", income, []);
+    expect(categoryTotals(summary.incomeByCategory).map(item => [item.categoryId, item.cents])).toEqual([["stipendio", 100000], ["rimborsi", 9000], ["altro-entrata", 1200]]);
+    expect(Object.values(summary.incomeByCategory).reduce((a, b) => a + b, 0)).toBe(summary.incomeCents);
+    const detail = annualCategoryDetail("2026", "stipendio", income, [], "income");
+    expect(detail.cents).toBe(100000);
+    expect(detail.transactions.map(item => item.id)).toEqual(["salary"]);
+    expect(detail.averageCents).toBe(8333);
+    expect(detail.months).toEqual([{ month: "2026-12", cents: 100000 }]);
+    expect(annualCategoryDetail("2026", "altro-entrata", income, [], "income").cents).toBe(1200);
+    expect(annualCategoryDetail("2024", "stipendio", income, [], "income").cents).toBe(0);
+    expect(annualCategoryDetail("2025", "stipendio", income, [], "income").cents).toBe(50000);
+  });
+  it("uses historical income only in months without individual income or expenses", () => {
+    const history: HistoricalMonthlySummary[] = ["02", "04"].map(month => ({ id: month, month: `2026-${month}`, incomeByCategory: { rimborsi: 5000 }, expenseByCategory: {}, totalIncomeCents: 5000, totalExpensesCents: 0, savingsCents: 5000, source: "historical-import", createdAt: "2026-01-01" }));
+    const detail = annualCategoryDetail("2026", "rimborsi", items, history, "income");
+    expect(detail.cents).toBe(14000);
+    expect(detail.historicalMonths).toBe(1);
+    expect(detail.transactions).toHaveLength(1);
+    expect(detail.cents).toBe(summarizeYear("2026", items, history).incomeByCategory.rimborsi);
+  });
+});

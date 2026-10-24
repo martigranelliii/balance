@@ -316,16 +316,17 @@ export function resolveInsightYear(years: string[], selected?: string, current =
   return years.includes(current) ? current : (years[0] ?? current);
 }
 
-export function annualCategoryDetail(year: string, categoryId: string, transactions: Transaction[], historical: HistoricalMonthlySummary[]) {
+export function annualCategoryDetail(year: string, categoryId: string, transactions: Transaction[], historical: HistoricalMonthlySummary[], kind: "expense" | "income" = "expense") {
   const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`)
     .map((month) => getMonthSummary(month, transactions, historical));
-  const items = transactions.filter((item) => item.date.startsWith(`${year}-`) && item.type === "expense" && (item.category ?? "altro-spesa") === categoryId);
-  const cents = sumCents(months.map((month) => month.expenseByCategory[categoryId] ?? 0));
+  const categoryMap = (summary: MonthSummary) => kind === "income" ? summary.incomeByCategory : summary.expenseByCategory;
+  const items = transactions.filter((item) => item.date.startsWith(`${year}-`) && item.type === kind && (item.category ?? (kind === "income" ? "altro-entrata" : "altro-spesa")) === categoryId);
+  const cents = sumCents(months.map((month) => categoryMap(month)[categoryId] ?? 0));
   return {
     cents,
     averageCents: Math.round(cents / 12),
     transactions: [...items].sort((a, b) => b.date.localeCompare(a.date)),
-    historicalMonths: months.filter((month) => month.source === "historical" && (month.expenseByCategory[categoryId] ?? 0) > 0).length,
-    months: months.map((month) => ({ month: month.month, cents: month.expenseByCategory[categoryId] ?? 0 })).filter((month) => month.cents > 0).sort((a, b) => b.cents - a.cents || a.month.localeCompare(b.month)),
+    historicalMonths: months.filter((month) => month.source === "historical" && (categoryMap(month)[categoryId] ?? 0) > 0).length,
+    months: months.map((month) => ({ month: month.month, cents: categoryMap(month)[categoryId] ?? 0 })).filter((month) => month.cents > 0).sort((a, b) => b.cents - a.cents || a.month.localeCompare(b.month)),
   };
 }
